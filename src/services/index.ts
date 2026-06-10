@@ -3,3 +3,4 @@ export { climatiqService } from './climatiq';
 export { electricityMapsService } from './electricityMaps';
 export { deepseekService } from './deepseek';
 export { googleVisionService } from './googleVision';
+export { databaseService } from './database';

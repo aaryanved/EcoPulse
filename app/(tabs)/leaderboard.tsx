@@ -1,192 +1,197 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useLeaderboardStore } from '@/stores/leaderboardStore';
 import { useAuth } from '@/hooks/useAuth';
+import { useCarbon } from '@/hooks/useCarbon';
 import { formatCarbonKg } from '@/utils/carbon';
 import { Colors, Spacing, BorderRadius, FontSize } from '@/constants/theme';
 
-type Scope = 'global' | 'friends';
-
-interface LeaderboardEntry {
-  rank: number;
-  userId: string;
-  displayName: string;
-  carbonKg: number;
-  reductionPercent: number;
-  streak: number;
-  isCurrentUser: boolean;
-}
-
-const MOCK_LEADERBOARD: LeaderboardEntry[] = [
-  { rank: 1, userId: '1', displayName: 'Sarah K.', carbonKg: 98, reductionPercent: 42, streak: 21, isCurrentUser: false },
-  { rank: 2, userId: '2', displayName: 'Marcus T.', carbonKg: 112, reductionPercent: 38, streak: 14, isCurrentUser: false },
-  { rank: 3, userId: '3', displayName: 'Priya M.', carbonKg: 134, reductionPercent: 31, streak: 9, isCurrentUser: false },
-  { rank: 4, userId: 'me', displayName: 'You', carbonKg: 168, reductionPercent: 22, streak: 5, isCurrentUser: true },
-  { rank: 5, userId: '5', displayName: 'Alex R.', carbonKg: 187, reductionPercent: 18, streak: 3, isCurrentUser: false },
-  { rank: 6, userId: '6', displayName: 'Emma L.', carbonKg: 201, reductionPercent: 12, streak: 1, isCurrentUser: false },
-  { rank: 7, userId: '7', displayName: 'James O.', carbonKg: 223, reductionPercent: 8, streak: 0, isCurrentUser: false },
-];
-
 export default function LeaderboardScreen() {
-  const { profile } = useAuth();
-  const [scope, setScope] = useState<Scope>('global');
+  const { user, profile } = useAuth();
+  const { currentMonthBreakdown, reductionVsPrevious } = useCarbon();
+  const { entries, isLoading, fetchLeaderboard } = useLeaderboardStore();
 
-  const myEntry = MOCK_LEADERBOARD.find(e => e.isCurrentUser);
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
+
+  const myEntry = entries.find(e => e.user_id === user?.id);
+  const myRank = myEntry?.rank ?? null;
 
   const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
   const rankIcons = ['trophy', 'medal', 'medal-outline'];
+
+  function getDisplayName(entry: any): string {
+    if (entry.user_id === user?.id) return profile?.display_name ?? 'You';
+    return (entry.user?.display_name ?? `User ${entry.user_id.slice(0, 6)}`) as string;
+  }
+
+  function getInitial(entry: any): string {
+    return getDisplayName(entry).charAt(0).toUpperCase();
+  }
+
+  if (isLoading && entries.length === 0) {
+    return <LoadingSpinner fullScreen label="Loading leaderboard..." />;
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text variant="heading">Leaderboard</Text>
         <Text variant="caption" color="muted">
-          June 2026
+          {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </Text>
-      </View>
-
-      <View style={styles.tabs}>
-        {(['global', 'friends'] as const).map(s => (
-          <TouchableOpacity
-            key={s}
-            style={[styles.tab, scope === s && styles.tabActive]}
-            onPress={() => setScope(s)}
-          >
-            <Text
-              variant="body"
-              weight="semibold"
-              style={scope === s ? styles.tabTextActive : styles.tabText}
-            >
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={() => fetchLeaderboard()} tintColor={Colors.emerald[500]} />
+        }
       >
-        {/* Top 3 Podium */}
-        <View style={styles.podium}>
-          {[1, 0, 2].map(i => {
-            const entry = MOCK_LEADERBOARD[i];
-            const isFirst = i === 0;
-            return (
-              <View key={i} style={[styles.podiumEntry, isFirst && styles.podiumFirst]}>
-                <View style={[styles.podiumAvatar, { borderColor: rankColors[i] }]}>
-                  <Text style={styles.podiumAvatarText}>
-                    {entry.displayName.charAt(0)}
-                  </Text>
-                </View>
-                <MaterialCommunityIcons
-                  name={rankIcons[i] as any}
-                  size={isFirst ? 28 : 22}
-                  color={rankColors[i]}
-                />
-                <Text variant="caption" weight="semibold" numberOfLines={1} style={styles.podiumName}>
-                  {entry.displayName}
-                </Text>
-                <Text variant="caption" style={{ color: Colors.carbon.low }}>
-                  {formatCarbonKg(entry.carbonKg)}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Full List */}
-        <View style={styles.list}>
-          {MOCK_LEADERBOARD.map(entry => (
-            <View
-              key={entry.userId}
-              style={[styles.entry, entry.isCurrentUser && styles.entryHighlighted]}
-            >
-              <Text
-                style={[
-                  styles.rank,
-                  { color: entry.rank <= 3 ? rankColors[entry.rank - 1] : Colors.text.dim },
-                ]}
-              >
-                {entry.rank}
-              </Text>
-
-              <View style={styles.entryAvatar}>
-                <Text style={styles.entryAvatarText}>
-                  {entry.displayName.charAt(0)}
-                </Text>
-              </View>
-
-              <View style={styles.entryInfo}>
-                <View style={styles.entryNameRow}>
-                  <Text
-                    variant="body"
-                    weight={entry.isCurrentUser ? 'semibold' : 'regular'}
-                    style={entry.isCurrentUser ? { color: Colors.emerald[400] } : undefined}
-                  >
-                    {entry.isCurrentUser ? `${profile?.display_name ?? 'You'} (you)` : entry.displayName}
-                  </Text>
-                  {entry.streak > 0 && (
-                    <View style={styles.streak}>
-                      <MaterialCommunityIcons name="fire" size={12} color={Colors.warning} />
-                      <Text style={styles.streakText}>{entry.streak}</Text>
+        {entries.length === 0 ? (
+          <EmptyState
+            icon="podium"
+            title="No data yet"
+            description="Log activities to appear on the leaderboard. Rankings update as you track your footprint."
+          />
+        ) : (
+          <>
+            {/* Top 3 podium */}
+            {entries.length >= 3 && (
+              <View style={styles.podium}>
+                {[1, 0, 2].map(i => {
+                  const entry = entries[i];
+                  if (!entry) return null;
+                  const isFirst = i === 0;
+                  const isMe = entry.user_id === user?.id;
+                  return (
+                    <View key={entry.id} style={[styles.podiumEntry, isFirst && styles.podiumFirst]}>
+                      <View
+                        style={[
+                          styles.podiumAvatar,
+                          { borderColor: rankColors[i] },
+                          isMe && styles.podiumAvatarMe,
+                        ]}
+                      >
+                        <Text style={styles.podiumAvatarText}>{getInitial(entry)}</Text>
+                      </View>
+                      <MaterialCommunityIcons
+                        name={rankIcons[i] as any}
+                        size={isFirst ? 28 : 22}
+                        color={rankColors[i]}
+                      />
+                      <Text variant="caption" weight="semibold" numberOfLines={1} style={styles.podiumName}>
+                        {isMe ? 'You' : getDisplayName(entry)}
+                      </Text>
+                      <Text variant="caption" style={{ color: Colors.carbon.low }}>
+                        {formatCarbonKg(entry.carbon_kg)}
+                      </Text>
                     </View>
-                  )}
-                </View>
-                <Text variant="caption" color="muted">
-                  ↓ {entry.reductionPercent}% this month
-                </Text>
+                  );
+                })}
               </View>
+            )}
 
-              <Text style={[styles.entryCarbon, { color: Colors.carbon.low }]}>
-                {formatCarbonKg(entry.carbonKg)}
+            {/* Full ranked list */}
+            <View style={styles.list}>
+              {entries.map(entry => {
+                const isMe = entry.user_id === user?.id;
+                const streak = entry.user?.current_streak ?? 0;
+                return (
+                  <View key={entry.id} style={[styles.entryRow, isMe && styles.entryRowMe]}>
+                    <Text
+                      style={[
+                        styles.rank,
+                        {
+                          color:
+                            (entry.rank ?? 0) <= 3
+                              ? rankColors[(entry.rank ?? 1) - 1]
+                              : Colors.text.dim,
+                        },
+                      ]}
+                    >
+                      {entry.rank}
+                    </Text>
+                    <View style={styles.entryAvatar}>
+                      <Text style={styles.entryAvatarText}>{getInitial(entry)}</Text>
+                    </View>
+                    <View style={styles.entryInfo}>
+                      <View style={styles.nameRow}>
+                        <Text
+                          variant="body"
+                          weight={isMe ? 'semibold' : 'regular'}
+                          style={isMe ? { color: Colors.emerald[400] } : undefined}
+                          numberOfLines={1}
+                        >
+                          {isMe ? `${getDisplayName(entry)} (you)` : getDisplayName(entry)}
+                        </Text>
+                        {streak > 0 && (
+                          <View style={styles.streak}>
+                            <MaterialCommunityIcons name="fire" size={12} color={Colors.warning} />
+                            <Text style={styles.streakText}>{streak}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text variant="caption" color="muted">
+                        ↓ {entry.reduction_percentage.toFixed(0)}% this month
+                      </Text>
+                    </View>
+                    <Text style={styles.entryCarbon}>
+                      {formatCarbonKg(entry.carbon_kg)}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* My stats summary */}
+            <Card variant="glow">
+              <Text variant="label" color="muted" style={{ marginBottom: Spacing.md }}>
+                Your Stats
               </Text>
-            </View>
-          ))}
-        </View>
-
-        {/* My Stats Card */}
-        {myEntry && (
-          <Card variant="glow">
-            <Text variant="label" color="muted" style={{ marginBottom: Spacing.md }}>
-              Your Stats
-            </Text>
-            <View style={styles.myStats}>
-              <View style={styles.myStat}>
-                <Text style={styles.myStatValue}>#{myEntry.rank}</Text>
-                <Text variant="caption" color="muted">
-                  Rank
-                </Text>
+              <View style={styles.myStats}>
+                <View style={styles.myStat}>
+                  <Text style={styles.myStatValue}>
+                    {myRank != null ? `#${myRank}` : '—'}
+                  </Text>
+                  <Text variant="caption" color="muted">Rank</Text>
+                </View>
+                <View style={styles.myStatDivider} />
+                <View style={styles.myStat}>
+                  <Text style={[styles.myStatValue, { color: Colors.carbon.low }]}>
+                    {formatCarbonKg(currentMonthBreakdown.total)}
+                  </Text>
+                  <Text variant="caption" color="muted">This Month</Text>
+                </View>
+                <View style={styles.myStatDivider} />
+                <View style={styles.myStat}>
+                  <Text
+                    style={[
+                      styles.myStatValue,
+                      { color: reductionVsPrevious > 0 ? Colors.carbon.low : Colors.carbon.high },
+                    ]}
+                  >
+                    {reductionVsPrevious > 0 ? '↓' : '↑'}{Math.abs(reductionVsPrevious).toFixed(0)}%
+                  </Text>
+                  <Text variant="caption" color="muted">vs. Last Month</Text>
+                </View>
               </View>
-              <View style={styles.myStatDivider} />
-              <View style={styles.myStat}>
-                <Text style={[styles.myStatValue, { color: Colors.carbon.low }]}>
-                  {formatCarbonKg(myEntry.carbonKg)}
-                </Text>
-                <Text variant="caption" color="muted">
-                  This Month
-                </Text>
-              </View>
-              <View style={styles.myStatDivider} />
-              <View style={styles.myStat}>
-                <Text style={[styles.myStatValue, { color: Colors.carbon.low }]}>
-                  ↓{myEntry.reductionPercent}%
-                </Text>
-                <Text variant="caption" color="muted">
-                  Reduction
-                </Text>
-              </View>
-            </View>
-          </Card>
+            </Card>
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -194,10 +199,7 @@ export default function LeaderboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background.primary,
-  },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
   header: {
     paddingHorizontal: Spacing['2xl'],
     paddingVertical: Spacing.base,
@@ -205,34 +207,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  tabs: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing['2xl'],
-    marginBottom: Spacing.base,
-    gap: Spacing.sm,
-  },
-  tab: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  tabActive: {
-    backgroundColor: Colors.emerald[500],
-    borderColor: Colors.emerald[500],
-  },
-  tabText: {
-    color: Colors.text.muted,
-  },
-  tabTextActive: {
-    color: Colors.background.primary,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing['2xl'],
-    paddingBottom: Spacing['4xl'],
-    gap: Spacing.xl,
-  },
+  scrollContent: { paddingHorizontal: Spacing['2xl'], paddingBottom: Spacing['4xl'], gap: Spacing.xl },
   podium: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -240,14 +215,8 @@ const styles = StyleSheet.create({
     gap: Spacing.base,
     paddingVertical: Spacing.xl,
   },
-  podiumEntry: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-    flex: 1,
-  },
-  podiumFirst: {
-    transform: [{ translateY: -16 }],
-  },
+  podiumEntry: { alignItems: 'center', gap: Spacing.xs, flex: 1 },
+  podiumFirst: { transform: [{ translateY: -16 }] },
   podiumAvatar: {
     width: 52,
     height: 52,
@@ -257,19 +226,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
   },
-  podiumAvatarText: {
-    fontSize: FontSize.xl,
-    color: Colors.text.primary,
-    fontWeight: '700',
-  },
-  podiumName: {
-    maxWidth: 80,
-    textAlign: 'center',
-  },
-  list: {
-    gap: Spacing.sm,
-  },
-  entry: {
+  podiumAvatarMe: { borderColor: Colors.emerald[500] },
+  podiumAvatarText: { fontSize: FontSize.xl, color: Colors.text.primary, fontWeight: '700' },
+  podiumName: { maxWidth: 80, textAlign: 'center' },
+  list: { gap: Spacing.sm },
+  entryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
@@ -279,16 +240,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  entryHighlighted: {
+  entryRowMe: {
     borderColor: `${Colors.emerald[500]}60`,
     backgroundColor: `${Colors.emerald[500]}08`,
   },
-  rank: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    minWidth: 24,
-    textAlign: 'center',
-  },
+  rank: { fontSize: FontSize.md, fontWeight: '700', minWidth: 24, textAlign: 'center' },
   entryAvatar: {
     width: 36,
     height: 36,
@@ -297,20 +253,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  entryAvatarText: {
-    fontSize: FontSize.base,
-    color: Colors.text.secondary,
-    fontWeight: '600',
-  },
-  entryInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  entryNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
+  entryAvatarText: { fontSize: FontSize.base, color: Colors.text.secondary, fontWeight: '600' },
+  entryInfo: { flex: 1, gap: 2 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   streak: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -320,32 +265,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
-  streakText: {
-    fontSize: FontSize.xs,
-    color: Colors.warning,
-    fontWeight: '700',
-  },
-  entryCarbon: {
-    fontSize: FontSize.base,
-    fontWeight: '600',
-  },
-  myStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  myStat: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  myStatValue: {
-    fontSize: FontSize.xl,
-    fontWeight: '800',
-    color: Colors.text.primary,
-  },
-  myStatDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: Colors.divider,
-  },
+  streakText: { fontSize: FontSize.xs, color: Colors.warning, fontWeight: '700' },
+  entryCarbon: { fontSize: FontSize.base, fontWeight: '600', color: Colors.carbon.low },
+  myStats: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
+  myStat: { alignItems: 'center', gap: 2 },
+  myStatValue: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.text.primary },
+  myStatDivider: { width: 1, height: 36, backgroundColor: Colors.divider },
 });

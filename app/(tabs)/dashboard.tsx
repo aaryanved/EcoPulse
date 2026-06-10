@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,8 +17,12 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { CategoryBreakdown } from '@/components/carbon/CategoryBreakdown';
 import { ActivityCard } from '@/components/carbon/ActivityCard';
+import { RecommendationCard } from '@/components/carbon/RecommendationCard';
+import { GoalCard } from '@/components/carbon/GoalCard';
 import { useAuth } from '@/hooks/useAuth';
 import { useCarbon } from '@/hooks/useCarbon';
+import { useRecommendations } from '@/hooks/useRecommendations';
+import { useGoals } from '@/hooks/useGoals';
 import {
   formatCarbonKg,
   getCarbonLevel,
@@ -31,12 +35,25 @@ import { Colors, Spacing, FontSize, BorderRadius } from '@/constants/theme';
 
 export default function DashboardScreen() {
   const { profile } = useAuth();
-  const { activities, currentMonthBreakdown, isLoading, refresh, remove, reductionVsPrevious } =
+  const { activities, currentMonthBreakdown, previousMonthBreakdown, isLoading, refresh, remove, reductionVsPrevious } =
     useCarbon();
+  const { recommendations, refresh: refreshRecs, markRead, dismiss } = useRecommendations();
+  const { activeGoals, refresh: refreshGoals, sync: syncGoals } = useGoals();
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([refresh(), refreshRecs(), refreshGoals()]);
+  }, [refresh, refreshRecs, refreshGoals]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    refreshAll();
+  }, [refreshAll]);
+
+  // Sync goal progress whenever breakdown changes
+  useEffect(() => {
+    if (currentMonthBreakdown.total > 0) {
+      syncGoals(currentMonthBreakdown as unknown as Record<string, number>).catch(() => {});
+    }
+  }, [currentMonthBreakdown, syncGoals]);
 
   const goal = profile?.monthly_carbon_goal ?? 200;
   const total = currentMonthBreakdown.total;
@@ -50,7 +67,6 @@ export default function DashboardScreen() {
     high: Colors.carbon.high,
     critical: Colors.carbon.critical,
   };
-
   const levelColor = levelColors[level];
 
   if (isLoading && activities.length === 0) {
@@ -63,11 +79,7 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={refresh}
-            tintColor={Colors.emerald[500]}
-          />
+          <RefreshControl refreshing={isLoading} onRefresh={refreshAll} tintColor={Colors.emerald[500]} />
         }
       >
         {/* Header */}
@@ -100,21 +112,15 @@ export default function DashboardScreen() {
         >
           <View style={styles.heroTop}>
             <View>
-              <Text variant="label" color="muted">
-                This month
-              </Text>
+              <Text variant="label" color="muted">This month</Text>
               <Text style={[styles.heroValue, { color: levelColor }]}>
                 {formatCarbonKg(total)}
               </Text>
-              <Text variant="caption" color="muted">
-                CO₂ equivalent
-              </Text>
+              <Text variant="caption" color="muted">CO₂ equivalent</Text>
             </View>
             <Badge
               label={level.toUpperCase()}
-              variant={
-                level === 'low' ? 'success' : level === 'medium' ? 'warning' : 'error'
-              }
+              variant={level === 'low' ? 'success' : level === 'medium' ? 'warning' : 'error'}
             />
           </View>
 
@@ -127,33 +133,24 @@ export default function DashboardScreen() {
                 {(goalProgress * 100).toFixed(0)}%
               </Text>
             </View>
-            <ProgressBar
-              progress={goalProgress}
-              color={levelColor}
-              height={6}
-            />
+            <ProgressBar progress={goalProgress} color={levelColor} height={6} />
           </View>
 
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <Text variant="caption" color="muted">
-                vs. last month
-              </Text>
+              <Text variant="caption" color="muted">vs. last month</Text>
               <Text
                 style={[
                   styles.statValue,
                   { color: reductionVsPrevious > 0 ? Colors.carbon.low : Colors.carbon.high },
                 ]}
               >
-                {reductionVsPrevious > 0 ? '↓' : '↑'}{' '}
-                {Math.abs(reductionVsPrevious).toFixed(0)}%
+                {reductionVsPrevious > 0 ? '↓' : '↑'} {Math.abs(reductionVsPrevious).toFixed(0)}%
               </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
-              <Text variant="caption" color="muted">
-                vs. average
-              </Text>
+              <Text variant="caption" color="muted">vs. average</Text>
               <Text
                 style={[
                   styles.statValue,
@@ -165,9 +162,7 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
-              <Text variant="caption" color="muted">
-                trees needed
-              </Text>
+              <Text variant="caption" color="muted">trees needed</Text>
               <Text style={[styles.statValue, { color: Colors.emerald[400] }]}>
                 {carbonToTrees(total)}
               </Text>
@@ -177,54 +172,64 @@ export default function DashboardScreen() {
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.quickAction}
+          <QuickActionButton
+            icon="plus"
+            label="Log Activity"
+            color={Colors.emerald[500]}
             onPress={() => router.push('/(tabs)/log')}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: `${Colors.emerald[500]}20` }]}>
-              <MaterialCommunityIcons name="plus" size={22} color={Colors.emerald[500]} />
-            </View>
-            <Text variant="caption" color="secondary">
-              Log Activity
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickAction}
+          />
+          <QuickActionButton
+            icon="receipt"
+            label="Scan Receipt"
+            color={Colors.info}
             onPress={() => router.push('/receipt-scanner')}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: `${Colors.info}20` }]}>
-              <MaterialCommunityIcons name="receipt" size={22} color={Colors.info} />
-            </View>
-            <Text variant="caption" color="secondary">
-              Scan Receipt
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickAction}
+          />
+          <QuickActionButton
+            icon="chart-timeline-variant"
+            label="Simulator"
+            color={Colors.warning}
             onPress={() => router.push('/simulator')}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: `${Colors.warning}20` }]}>
-              <MaterialCommunityIcons name="chart-timeline-variant" size={22} color={Colors.warning} />
-            </View>
-            <Text variant="caption" color="secondary">
-              Simulator
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickAction}
+          />
+          <QuickActionButton
+            icon="robot"
+            label="AI Coach"
+            color={Colors.emerald[400]}
             onPress={() => router.push('/(tabs)/coach')}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: `${Colors.emerald[700]}40` }]}>
-              <MaterialCommunityIcons name="robot" size={22} color={Colors.emerald[400]} />
-            </View>
-            <Text variant="caption" color="secondary">
-              AI Coach
-            </Text>
-          </TouchableOpacity>
+          />
         </View>
+
+        {/* AI Recommendations */}
+        {recommendations.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text variant="title">AI Insights</Text>
+              <MaterialCommunityIcons name="robot" size={18} color={Colors.emerald[500]} />
+            </View>
+            {recommendations.slice(0, 2).map(rec => (
+              <RecommendationCard
+                key={rec.id}
+                recommendation={rec}
+                onDismiss={dismiss}
+                onRead={markRead}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Active Goals */}
+        {activeGoals.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text variant="title">Goals</Text>
+              <TouchableOpacity onPress={() => router.push('/goals')}>
+                <Text variant="caption" color="secondary">Manage</Text>
+              </TouchableOpacity>
+            </View>
+            {activeGoals.slice(0, 2).map(goal => (
+              <GoalCard key={goal.id} goal={goal} />
+            ))}
+          </View>
+        )}
 
         {/* Category Breakdown */}
         <CategoryBreakdown breakdown={currentMonthBreakdown} />
@@ -238,13 +243,13 @@ export default function DashboardScreen() {
             <View style={styles.equivalents}>
               <View style={styles.equivalent}>
                 <MaterialCommunityIcons name="airplane" size={24} color={Colors.info} />
-                <Text variant="caption" color="muted" style={styles.equivalentText}>
+                <Text variant="caption" color="muted" style={{ flex: 1 }}>
                   = {carbonToFlights(total)} short-haul flights
                 </Text>
               </View>
               <View style={styles.equivalent}>
                 <MaterialCommunityIcons name="tree" size={24} color={Colors.carbon.low} />
-                <Text variant="caption" color="muted" style={styles.equivalentText}>
+                <Text variant="caption" color="muted" style={{ flex: 1 }}>
                   {carbonToTrees(total)} trees to offset this month
                 </Text>
               </View>
@@ -253,31 +258,25 @@ export default function DashboardScreen() {
         )}
 
         {/* Recent Activities */}
-        <View style={styles.recentSection}>
-          <View style={styles.recentHeader}>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
             <Text variant="title">Recent</Text>
-            {activities.length > 3 && (
+            {activities.length > 5 && (
               <TouchableOpacity onPress={() => router.push('/(tabs)/log')}>
-                <Text variant="caption" color="secondary">
-                  View all
-                </Text>
+                <Text variant="caption" color="secondary">View all</Text>
               </TouchableOpacity>
             )}
           </View>
           {activities.length === 0 ? (
             <Card variant="outlined">
               <Text variant="body" color="muted" style={styles.noActivities}>
-                No activities logged this month. Start tracking your carbon footprint!
+                No activities logged this month. Start tracking!
               </Text>
             </Card>
           ) : (
             <View style={styles.activityList}>
               {activities.slice(0, 5).map(activity => (
-                <ActivityCard
-                  key={activity.id}
-                  activity={activity}
-                  onDelete={remove}
-                />
+                <ActivityCard key={activity.id} activity={activity} onDelete={remove} />
               ))}
             </View>
           )}
@@ -287,27 +286,37 @@ export default function DashboardScreen() {
   );
 }
 
+function QuickActionButton({
+  icon,
+  label,
+  color,
+  onPress,
+}: {
+  icon: string;
+  label: string;
+  color: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity style={styles.quickAction} onPress={onPress}>
+      <View style={[styles.quickActionIcon, { backgroundColor: `${color}20` }]}>
+        <MaterialCommunityIcons name={icon as any} size={22} color={color} />
+      </View>
+      <Text variant="caption" color="secondary">{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background.primary,
-  },
-  scrollContent: {
-    padding: Spacing['2xl'],
-    gap: Spacing.base,
-    paddingBottom: Spacing['4xl'],
-  },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
+  scrollContent: { padding: Spacing['2xl'], gap: Spacing.base, paddingBottom: Spacing['4xl'] },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.sm,
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -317,11 +326,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     gap: 3,
   },
-  streakText: {
-    color: Colors.warning,
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-  },
+  streakText: { color: Colors.warning, fontSize: FontSize.sm, fontWeight: '700' },
   heroCard: {
     borderRadius: 20,
     padding: Spacing.xl,
@@ -329,23 +334,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.divider,
   },
-  heroTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  heroValue: {
-    fontSize: FontSize['4xl'],
-    fontWeight: '800',
-    lineHeight: 48,
-  },
-  goalSection: {
-    gap: Spacing.xs,
-  },
-  goalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
+  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  heroValue: { fontSize: FontSize['4xl'], fontWeight: '800', lineHeight: 48 },
+  goalSection: { gap: Spacing.xs },
+  goalHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -354,27 +346,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.divider,
   },
-  stat: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  statValue: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: Colors.divider,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  quickAction: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
+  stat: { alignItems: 'center', gap: 2 },
+  statValue: { fontSize: FontSize.md, fontWeight: '700' },
+  statDivider: { width: 1, height: 30, backgroundColor: Colors.divider },
+  quickActions: { flexDirection: 'row', justifyContent: 'space-between' },
+  quickAction: { alignItems: 'center', gap: Spacing.xs },
   quickActionIcon: {
     width: 56,
     height: 56,
@@ -382,33 +358,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sectionLabel: {
-    marginBottom: Spacing.md,
-  },
-  equivalents: {
-    gap: Spacing.md,
-  },
-  equivalent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  equivalentText: {
-    flex: 1,
-  },
-  recentSection: {
-    gap: Spacing.md,
-  },
-  recentHeader: {
+  section: { gap: Spacing.md },
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  activityList: {
-    gap: Spacing.sm,
-  },
-  noActivities: {
-    textAlign: 'center',
-    padding: Spacing.base,
-  },
+  sectionLabel: { marginBottom: Spacing.md },
+  equivalents: { gap: Spacing.md },
+  equivalent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  activityList: { gap: Spacing.sm },
+  noActivities: { textAlign: 'center', padding: Spacing.base },
 });

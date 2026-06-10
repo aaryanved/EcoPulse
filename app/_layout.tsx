@@ -35,6 +35,7 @@ export default function RootLayout() {
         <Stack.Screen name="simulator" options={{ presentation: 'modal' }} />
         <Stack.Screen name="receipt-scanner" options={{ presentation: 'modal' }} />
         <Stack.Screen name="settings" />
+        <Stack.Screen name="goals" />
       </Stack>
     </GestureHandlerRootView>
   );

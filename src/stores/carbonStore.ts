@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/services/supabase';
+import { updateStreak, upsertLeaderboardEntry, checkAndAwardBadges } from '@/services/database';
 import type { ActivityRow, CarbonEntryRow, ActivityCategory, CarbonBreakdown } from '@/types';
 import { buildCarbonBreakdown, toISODate, getMonthRange } from '@/utils';
 
@@ -99,10 +100,17 @@ export const useCarbonStore = create<CarbonState>((set, get) => ({
     };
 
     const updated = [newActivity, ...activities];
-    set({
-      activities: updated,
-      currentMonthBreakdown: buildCarbonBreakdown(updated),
-    });
+    const newBreakdown = buildCarbonBreakdown(updated);
+
+    set({ activities: updated, currentMonthBreakdown: newBreakdown });
+
+    // Fire-and-forget side effects: streak, leaderboard, badges
+    const period = toISODate(new Date()).slice(0, 7); // YYYY-MM
+    Promise.all([
+      updateStreak(userId).catch(() => {}),
+      upsertLeaderboardEntry(userId, period, newBreakdown.total, 0).catch(() => {}),
+      checkAndAwardBadges(userId).catch(() => {}),
+    ]);
   },
 
   deleteActivity: async (activityId) => {
