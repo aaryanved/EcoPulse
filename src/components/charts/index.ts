@@ -1,0 +1,1 @@
+export { CarbonTrendChart } from './CarbonTrendChart';

@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "EcoPulse",
+    "slug": "ecopulse",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "ecopulse",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0f0a"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ecopulse.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "EcoPulse uses your camera to scan receipts and calculate carbon footprints from purchases.",
+        "NSPhotoLibraryUsageDescription": "EcoPulse accesses your photo library to upload receipts for carbon footprint analysis.",
+        "NSLocationWhenInUseUsageDescription": "EcoPulse uses your location to provide accurate regional carbon intensity data."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0a0f0a"
+      },
+      "package": "com.ecopulse.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "EcoPulse uses your camera to scan receipts."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "EcoPulse accesses photos to upload receipts."
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#10b981"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
