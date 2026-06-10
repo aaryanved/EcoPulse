@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 import { useAuthStore } from '@/stores/authStore';
+import { SplashLoader } from '@/components/ui/SplashLoader';
 import { Colors } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -16,7 +17,10 @@ export default function RootLayout() {
     initialize().finally(() => SplashScreen.hideAsync());
   }, [initialize]);
 
-  if (!isInitialized) return null;
+  // Show animated splash while auth initializes
+  if (!isInitialized) {
+    return <SplashLoader />;
+  }
 
   return (
     <GestureHandlerRootView style={styles.root}>
@@ -42,7 +46,5 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
+  root: { flex: 1 },
 });

@@ -5,7 +5,7 @@ import {
   markRecommendationRead,
   dismissRecommendation,
 } from '@/services/database';
-import { generateWeeklyReport, generateReductionPlan } from '@/services/deepseek';
+import { generateWeeklyReport, generateReductionPlan } from '@/services/gemini';
 import type { AIRecommendationRow, CarbonBreakdown, UserRow } from '@/types';
 
 interface RecommendationState {

@@ -15,10 +15,11 @@ export const Config = {
     apiKey: process.env.EXPO_PUBLIC_IATA_API_KEY ?? '',
     baseUrl: 'https://api.developer.iata.org',
   },
-  deepseek: {
-    apiKey: process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY ?? '',
-    baseUrl: 'https://api.deepseek.com',
-    model: 'deepseek-chat',
+  gemini: {
+    apiKey: process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    model: 'gemini-2.0-flash',
+    proModel: 'gemini-1.5-pro',
   },
   googleVision: {
     apiKey: process.env.EXPO_PUBLIC_GOOGLE_VISION_API_KEY ?? '',
