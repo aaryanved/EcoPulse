@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
@@ -14,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ActivityCard } from '@/components/carbon/ActivityCard';
 import { useCarbon } from '@/hooks/useCarbon';
+import { useClimatiqEstimate } from '@/hooks/useClimatiqEstimate';
 import { getCategoryColor, getCategoryIcon, getCategoryLabel } from '@/utils/carbon';
 import { Colors, Spacing, BorderRadius, FontSize } from '@/constants/theme';
 import type { ActivityCategory } from '@/types';
@@ -22,14 +24,14 @@ type LogStep = 'category' | 'details';
 
 const CATEGORIES: ActivityCategory[] = ['transport', 'food', 'electricity', 'purchases', 'waste', 'other'];
 
-interface TransportSubcategory {
+interface Subcategory {
   id: string;
   label: string;
   unit: string;
   kgPerUnit: number;
 }
 
-const SUBCATEGORIES: Record<ActivityCategory, TransportSubcategory[]> = {
+const SUBCATEGORIES: Record<ActivityCategory, Subcategory[]> = {
   transport: [
     { id: 'car_petrol', label: 'Car (Petrol)', unit: 'km', kgPerUnit: 0.192 },
     { id: 'car_diesel', label: 'Car (Diesel)', unit: 'km', kgPerUnit: 0.171 },
@@ -75,10 +77,15 @@ export default function LogScreen() {
   const { activities, log, remove, isLoading } = useCarbon();
   const [step, setStep] = useState<LogStep>('category');
   const [selectedCategory, setSelectedCategory] = useState<ActivityCategory | null>(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState<TransportSubcategory | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<Subcategory | null>(null);
   const [quantity, setQuantity] = useState('');
   const [description, setDescription] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const parsedQty = parseFloat(quantity);
+  const validQty = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 0;
+
+  const estimate = useClimatiqEstimate(selectedSubcategory?.id ?? null, validQty);
 
   function selectCategory(category: ActivityCategory) {
     setSelectedCategory(category);
@@ -92,19 +99,20 @@ export default function LogScreen() {
     setStep('category');
     setSelectedCategory(null);
     setSelectedSubcategory(null);
+    setQuantity('');
+    setDescription('');
   }
 
   async function handleSave() {
     if (!selectedCategory || !selectedSubcategory || !quantity) return;
 
-    const qty = parseFloat(quantity);
-    if (isNaN(qty) || qty <= 0) {
+    if (isNaN(parsedQty) || parsedQty <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid quantity.');
       return;
     }
 
-    const carbonKg = qty * selectedSubcategory.kgPerUnit;
-    const desc = description || `${selectedSubcategory.label}: ${qty} ${selectedSubcategory.unit}`;
+    const carbonKg = estimate.carbonKg;
+    const desc = description || `${selectedSubcategory.label}: ${parsedQty} ${selectedSubcategory.unit}`;
 
     setIsSaving(true);
     try {
@@ -113,7 +121,13 @@ export default function LogScreen() {
         selectedSubcategory.label,
         desc,
         carbonKg,
-        { quantity: qty, unit: selectedSubcategory.unit, subcategory_id: selectedSubcategory.id }
+        {
+          quantity: parsedQty,
+          unit: selectedSubcategory.unit,
+          subcategory_id: selectedSubcategory.id,
+          estimate_source: estimate.source,
+          factor_name: estimate.factorName ?? undefined,
+        }
       );
       setStep('category');
       setSelectedCategory(null);
@@ -127,11 +141,6 @@ export default function LogScreen() {
       setIsSaving(false);
     }
   }
-
-  const estimatedCarbon =
-    selectedSubcategory && quantity && !isNaN(parseFloat(quantity))
-      ? parseFloat(quantity) * selectedSubcategory.kgPerUnit
-      : 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -215,7 +224,10 @@ export default function LogScreen() {
               {SUBCATEGORIES[selectedCategory].map(sub => (
                 <TouchableOpacity
                   key={sub.id}
-                  style={[styles.subcategoryItem, selectedSubcategory?.id === sub.id && styles.subcategorySelected]}
+                  style={[
+                    styles.subcategoryItem,
+                    selectedSubcategory?.id === sub.id && styles.subcategorySelected,
+                  ]}
                   onPress={() => setSelectedSubcategory(sub)}
                 >
                   <Text
@@ -251,13 +263,34 @@ export default function LogScreen() {
                   </Text>
                 </View>
 
-                {estimatedCarbon > 0 && (
+                {validQty > 0 && (
                   <View style={styles.estimateRow}>
                     <MaterialCommunityIcons name="leaf" size={16} color={Colors.emerald[500]} />
-                    <Text variant="body" style={{ color: Colors.emerald[400] }}>
-                      ≈ {estimatedCarbon.toFixed(2)} kg CO₂e
+                    <Text variant="body" style={styles.estimateValue}>
+                      ≈ {estimate.carbonKg.toFixed(2)} kg CO₂e
                     </Text>
+                    {estimate.isLoading ? (
+                      <View style={styles.sourceTag}>
+                        <ActivityIndicator size="small" color={Colors.text.muted} />
+                        <Text variant="caption" color="muted">live...</Text>
+                      </View>
+                    ) : estimate.source === 'climatiq' ? (
+                      <View style={styles.sourceTagApi}>
+                        <View style={styles.sourceDot} />
+                        <Text variant="caption" style={styles.sourceTextApi}>Climatiq</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.sourceTag}>
+                        <Text variant="caption" color="dim">local</Text>
+                      </View>
+                    )}
                   </View>
+                )}
+
+                {estimate.factorName && !estimate.isLoading && (
+                  <Text variant="caption" color="muted" style={styles.factorName} numberOfLines={1}>
+                    {estimate.factorName}
+                  </Text>
                 )}
 
                 <TextInput
@@ -273,7 +306,7 @@ export default function LogScreen() {
                 <Button
                   onPress={handleSave}
                   loading={isSaving}
-                  disabled={!quantity || parseFloat(quantity) <= 0}
+                  disabled={!quantity || parsedQty <= 0}
                   fullWidth
                   size="lg"
                   style={styles.saveButton}
@@ -412,6 +445,44 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.emerald[500]}10`,
     borderRadius: BorderRadius.md,
     padding: Spacing.sm,
+  },
+  estimateValue: {
+    color: Colors.emerald[400],
+    fontWeight: '600',
+    flex: 1,
+  },
+  sourceTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.background.primary,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  sourceTagApi: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: `${Colors.emerald[500]}20`,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  sourceDot: {
+    width: 6,
+    height: 6,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.emerald[500],
+  },
+  sourceTextApi: {
+    color: Colors.emerald[400],
+    fontWeight: '600',
+    fontSize: FontSize.xs,
+  },
+  factorName: {
+    marginTop: -Spacing.xs,
+    fontStyle: 'italic',
   },
   descriptionInput: {
     backgroundColor: Colors.background.primary,

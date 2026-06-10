@@ -19,6 +19,7 @@ import { CategoryBreakdown } from '@/components/carbon/CategoryBreakdown';
 import { ActivityCard } from '@/components/carbon/ActivityCard';
 import { RecommendationCard } from '@/components/carbon/RecommendationCard';
 import { GoalCard } from '@/components/carbon/GoalCard';
+import { GridIntensityCard } from '@/components/carbon/GridIntensityCard';
 import { useAuth } from '@/hooks/useAuth';
 import { useCarbon } from '@/hooks/useCarbon';
 import { useRecommendations } from '@/hooks/useRecommendations';
@@ -197,6 +198,9 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(tabs)/coach')}
           />
         </View>
+
+        {/* Live Grid Intensity */}
+        <GridIntensityCard />
 
         {/* AI Recommendations */}
         {recommendations.length > 0 && (
