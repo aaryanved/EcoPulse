@@ -20,6 +20,7 @@ import Animated, {
   withTiming,
   withSequence,
   Easing,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { Text } from '@/components/ui/Text';
 import { geminiService } from '@/services/gemini';
@@ -63,7 +64,7 @@ function TypingDots() {
   const opacity3 = useSharedValue(0.3);
 
   useEffect(() => {
-    const pulse = (sv: Animated.SharedValue<number>, delay: number) => {
+    const pulse = (sv: SharedValue<number>, delay: number) => {
       sv.value = withRepeat(
         withSequence(
           withTiming(1, { duration: 400, easing: Easing.inOut(Easing.ease) }),

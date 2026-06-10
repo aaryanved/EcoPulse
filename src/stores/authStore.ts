@@ -109,20 +109,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       .from('users')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
-    set({ profile: data as UserRow });
+    if (data) set({ profile: data as UserRow });
   },
 
   updateProfile: async (updates) => {
     const userId = get().user?.id;
+    const userEmail = get().user?.email;
     if (!userId) throw new Error('Not authenticated');
 
     const { data, error } = await (supabase as any)
       .from('users')
-      .update(updates)
-      .eq('id', userId)
+      .upsert({
+        id: userId,
+        email: userEmail ?? '',
+        ...updates,
+      })
       .select()
       .single();
 
