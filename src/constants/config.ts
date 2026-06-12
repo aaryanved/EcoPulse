@@ -21,6 +21,12 @@ export const Config = {
     model: 'gemini-2.0-flash',
     proModel: 'gemini-1.5-pro',
   },
+  openRouter: {
+    apiKey: process.env.EXPO_PUBLIC_OPENROUTER_API_KEY ?? '',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'deepseek/deepseek-v4-flash',
+    proModel: 'deepseek/deepseek-r1-0528',
+  },
   googleVision: {
     apiKey: process.env.EXPO_PUBLIC_GOOGLE_VISION_API_KEY ?? '',
     baseUrl: 'https://vision.googleapis.com/v1',

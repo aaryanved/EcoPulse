@@ -3,12 +3,12 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Switch,
   Alert,
   Share,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
@@ -39,6 +39,7 @@ export default function SettingsScreen() {
   const [weeklyReport, setWeeklyReport] = useState(profile?.weekly_report_enabled ?? true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showZonePicker, setShowZonePicker] = useState(false);
+  const [selectedZone, setSelectedZone] = useState('US-CA');
 
   const carbonLevel = getCarbonLevel(currentMonthBreakdown.total);
   const levelVariant = carbonLevel === 'low' ? 'success' : carbonLevel === 'medium' ? 'warning' : 'error';
@@ -224,7 +225,7 @@ export default function SettingsScreen() {
                 </View>
               </View>
               <View style={styles.zoneRight}>
-                <Text variant="caption" color="secondary">US-CA</Text>
+                <Text variant="caption" color="secondary">{selectedZone}</Text>
                 <MaterialCommunityIcons
                   name={showZonePicker ? 'chevron-up' : 'chevron-down'}
                   size={18}
@@ -239,7 +240,7 @@ export default function SettingsScreen() {
                   <TouchableOpacity
                     key={z.zone}
                     style={styles.zoneOption}
-                    onPress={() => setShowZonePicker(false)}
+                    onPress={() => { setSelectedZone(z.zone); setShowZonePicker(false); }}
                   >
                     <Text variant="body">{z.label}</Text>
                     <Text variant="caption" color="muted">{z.zone}</Text>

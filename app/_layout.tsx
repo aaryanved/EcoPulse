@@ -1,8 +1,26 @@
+import 'react-native-get-random-values';
+// Polyfill crypto.randomUUID — required by Supabase on Hermes
+if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
+  (crypto as any).randomUUID = () => {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    return (
+      [...bytes].map((b, i) =>
+        [4, 6, 8, 10].includes(i)
+          ? '-' + b.toString(16).padStart(2, '0')
+          : b.toString(16).padStart(2, '0')
+      ).join('')
+    );
+  };
+}
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native';
 import { useAuthStore } from '@/stores/authStore';
 import { SplashLoader } from '@/components/ui/SplashLoader';
@@ -24,6 +42,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
       <StatusBar style="light" backgroundColor={Colors.background.primary} />
       <Stack
         screenOptions={{
@@ -41,6 +60,7 @@ export default function RootLayout() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="goals" />
       </Stack>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

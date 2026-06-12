@@ -3,10 +3,10 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Switch,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, {
@@ -20,7 +20,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
 import { useCarbon } from '@/hooks/useCarbon';
-import { formatCarbonKg, carbonToTrees, carbonToFlights, carbonToDrivingKm } from '@/utils/carbon';
+import { formatCarbonKg, carbonToTrees, carbonToFlights, carbonToDrivingKm, getCarbonLevel } from '@/utils/carbon';
 import { Colors, Spacing, BorderRadius, FontSize } from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
@@ -154,6 +154,10 @@ export default function SimulatorScreen() {
     });
   }
 
+  const levelColorMap = { low: Colors.carbon.low, medium: Colors.carbon.medium, high: Colors.carbon.high, critical: Colors.carbon.critical };
+  const currentLevelColor = levelColorMap[getCarbonLevel(currentTotal)];
+  const projectedLevelColor = levelColorMap[getCarbonLevel(projectedTotal)];
+
   const reductionBarWidth = useSharedValue(0);
   reductionBarWidth.value = withSpring(Math.min(reductionPct, 100), { damping: 14 });
   const reductionBarStyle = useAnimatedStyle(() => ({
@@ -180,9 +184,9 @@ export default function SimulatorScreen() {
           <Text variant="label" color="muted">Carbon Twin</Text>
           <View style={styles.twinRow}>
             <View style={styles.twin}>
-              <MaterialCommunityIcons name="earth" size={52} color={Colors.carbon.high} />
+              <MaterialCommunityIcons name="earth" size={52} color={currentLevelColor} />
               <Text variant="caption" color="muted">Current Path</Text>
-              <Text style={[styles.twinValue, { color: Colors.carbon.high }]}>
+              <Text style={[styles.twinValue, { color: currentLevelColor }]}>
                 {formatCarbonKg(currentTotal)}
               </Text>
               <Text variant="caption" color="muted">/month</Text>
@@ -198,18 +202,9 @@ export default function SimulatorScreen() {
             </View>
 
             <View style={styles.twin}>
-              <MaterialCommunityIcons
-                name="earth"
-                size={52}
-                color={projectedTotal < currentTotal ? Colors.carbon.low : Colors.carbon.high}
-              />
+              <MaterialCommunityIcons name="earth" size={52} color={projectedLevelColor} />
               <Text variant="caption" color="muted">With Changes</Text>
-              <Text
-                style={[
-                  styles.twinValue,
-                  { color: projectedTotal < currentTotal ? Colors.carbon.low : Colors.carbon.high },
-                ]}
-              >
+              <Text style={[styles.twinValue, { color: projectedLevelColor }]}>
                 {formatCarbonKg(projectedTotal)}
               </Text>
               <Text variant="caption" color="muted">/month</Text>
@@ -305,7 +300,7 @@ export default function SimulatorScreen() {
             <View style={styles.timeMachine}>
               <View style={styles.timeBlock}>
                 <Text variant="caption" color="muted">Current path</Text>
-                <Text style={[styles.timeValue, { color: Colors.carbon.high }]}>
+                <Text style={[styles.timeValue, { color: currentLevelColor }]}>
                   {formatCarbonKg(futureCurrentKg)}
                 </Text>
               </View>

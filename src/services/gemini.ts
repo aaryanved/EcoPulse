@@ -2,64 +2,63 @@ import { Config } from '@/constants';
 import type { ChatMessage, CarbonBreakdown, UserRow } from '@/types';
 
 // ---------------------------------------------------------------------------
-// Gemini REST types
+// OpenRouter types (OpenAI-compatible)
 // ---------------------------------------------------------------------------
 
-interface GeminiPart {
-  text: string;
+interface ORMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
 }
 
-interface GeminiContent {
-  role: 'user' | 'model';
-  parts: GeminiPart[];
+interface ORRequest {
+  model: string;
+  messages: ORMessage[];
+  temperature?: number;
+  max_tokens?: number;
 }
 
-interface GeminiRequest {
-  system_instruction?: { parts: GeminiPart[] };
-  contents: GeminiContent[];
-  generationConfig?: {
-    temperature?: number;
-    topK?: number;
-    topP?: number;
-    maxOutputTokens?: number;
-  };
-}
-
-interface GeminiResponse {
-  candidates: Array<{
-    content: { parts: GeminiPart[]; role: string };
-    finishReason: string;
-  }>;
-  error?: { message: string; code: number };
+interface ORResponse {
+  choices: Array<{ message: { content: string } }>;
+  error?: { message: string; code?: number };
 }
 
 // ---------------------------------------------------------------------------
 // Core fetch wrapper
 // ---------------------------------------------------------------------------
 
-async function callGemini(
-  request: GeminiRequest,
-  model: string = Config.gemini.model
+async function callAI(
+  messages: ORMessage[],
+  options: { model?: string; temperature?: number; maxTokens?: number } = {}
 ): Promise<string> {
-  if (!Config.gemini.apiKey) {
-    throw new Error('Gemini API key not configured. Add EXPO_PUBLIC_GEMINI_API_KEY to your .env');
+  if (!Config.openRouter.apiKey) {
+    throw new Error('OpenRouter API key not configured. Add EXPO_PUBLIC_OPENROUTER_API_KEY to your .env');
   }
 
-  const url = `${Config.gemini.baseUrl}/models/${model}:generateContent?key=${Config.gemini.apiKey}`;
+  const body: ORRequest = {
+    model: options.model ?? Config.openRouter.model,
+    messages,
+    temperature: options.temperature ?? 0.75,
+    max_tokens: options.maxTokens ?? 512,
+  };
 
-  const response = await fetch(url, {
+  const response = await fetch(`${Config.openRouter.baseUrl}/chat/completions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${Config.openRouter.apiKey}`,
+      'HTTP-Referer': 'https://ecopulse.app',
+      'X-Title': 'EcoPulse',
+    },
+    body: JSON.stringify(body),
   });
 
-  const data: GeminiResponse = await response.json();
+  const data: ORResponse = await response.json();
 
   if (!response.ok || data.error) {
-    throw new Error(data.error?.message ?? `Gemini API error: ${response.status}`);
+    throw new Error(data.error?.message ?? `OpenRouter API error: ${response.status}`);
   }
 
-  return data.candidates[0]?.content?.parts[0]?.text ?? '';
+  return data.choices[0]?.message?.content ?? '';
 }
 
 // ---------------------------------------------------------------------------
@@ -71,7 +70,7 @@ function buildSystemPrompt(
   carbonBreakdown: CarbonBreakdown
 ): string {
   const total = carbonBreakdown.total;
-  const globalAvgMonthly = 400; // kg CO₂/month global average
+  const globalAvgMonthly = 400;
 
   const pct = (n: number) => (total > 0 ? ((n / total) * 100).toFixed(0) : '0');
   const vsGoal =
@@ -81,8 +80,7 @@ function buildSystemPrompt(
   const vsGlobal =
     total > 0
       ? `${((total - globalAvgMonthly) / globalAvgMonthly) * 100 > 0 ? '+' : ''}${(
-          ((total - globalAvgMonthly) / globalAvgMonthly) *
-          100
+          ((total - globalAvgMonthly) / globalAvgMonthly) * 100
         ).toFixed(0)}% vs global avg`
       : 'no data yet';
 
@@ -159,28 +157,19 @@ export async function sendChatMessage(
 ): Promise<string> {
   const systemPrompt = buildSystemPrompt(userProfile, carbonBreakdown);
 
-  // Convert chat history to Gemini format (user / model roles)
-  const contents: GeminiContent[] = history
-    .filter(m => m.role !== 'assistant' || m.content.trim())
-    .slice(-12) // last 12 messages for context window efficiency
-    .map(m => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }],
-    }));
+  const messages: ORMessage[] = [
+    { role: 'system', content: systemPrompt },
+    ...history
+      .filter(m => m.content.trim())
+      .slice(-12)
+      .map(m => ({
+        role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+        content: m.content,
+      })),
+    { role: 'user', content: userMessage },
+  ];
 
-  // Ensure history ends with a user turn (Gemini requirement)
-  contents.push({ role: 'user', parts: [{ text: userMessage }] });
-
-  return callGemini({
-    system_instruction: { parts: [{ text: systemPrompt }] },
-    contents,
-    generationConfig: {
-      temperature: 0.75,
-      topK: 40,
-      topP: 0.95,
-      maxOutputTokens: 512,
-    },
-  });
+  return callAI(messages, { temperature: 0.75, maxTokens: 512 });
 }
 
 export async function generateWeeklyReport(
@@ -216,13 +205,13 @@ Rules:
 - Fourth: encouraging close referencing their streak if > 0
 - Plain prose, no headers, no bullet points`;
 
-  return callGemini({
-    system_instruction: {
-      parts: [{ text: 'You are EcoPulse AI, a concise and data-driven sustainability coach. Be specific with numbers, warm in tone, and never exceed 4 sentences.' }],
-    },
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.7, maxOutputTokens: 300 },
-  });
+  return callAI(
+    [
+      { role: 'system', content: 'You are EcoPulse AI, a concise and data-driven sustainability coach. Be specific with numbers, warm in tone, and never exceed 4 sentences.' },
+      { role: 'user', content: prompt },
+    ],
+    { temperature: 0.7, maxTokens: 300 }
+  );
 }
 
 export async function generateReductionPlan(
@@ -254,15 +243,12 @@ Provide exactly 3 steps. For each:
 
 Format each step clearly. Target the categories with highest absolute emissions first. Be realistic — no extreme changes.`;
 
-  return callGemini(
-    {
-      system_instruction: {
-        parts: [{ text: 'You are EcoPulse AI. Provide a precise, achievable 3-step carbon reduction plan with exact savings estimates. No generic advice.' }],
-      },
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.6, maxOutputTokens: 600 },
-    },
-    Config.gemini.proModel // use pro for detailed plans
+  return callAI(
+    [
+      { role: 'system', content: 'You are EcoPulse AI. Provide a precise, achievable 3-step carbon reduction plan with exact savings estimates. No generic advice.' },
+      { role: 'user', content: prompt },
+    ],
+    { model: Config.openRouter.proModel, temperature: 0.6, maxTokens: 600 }
   );
 }
 

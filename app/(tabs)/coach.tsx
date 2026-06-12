@@ -5,12 +5,13 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   ScrollView,
+  Text as RNText,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, {
@@ -39,7 +40,7 @@ const INITIAL_MESSAGE: ChatMessage = {
   id: '0',
   role: 'assistant',
   content:
-    "Hi! I'm your EcoPulse AI sustainability coach, powered by Gemini. I have access to your live carbon data and can help you understand your footprint, build a reduction plan, or answer any sustainability question. What's on your mind?",
+    "Hi! I'm your EcoPulse AI sustainability coach. I have access to your live carbon data and can help you understand your footprint, build a reduction plan, or answer any sustainability question. What's on your mind?",
   timestamp: new Date().toISOString(),
 };
 
@@ -55,6 +56,41 @@ const QUICK_PROMPTS = [
 const TYPEWRITER_SPEED_MS = 14;
 
 // ---------------------------------------------------------------------------
+// Inline markdown renderer — handles **bold** and *italic*
+// ---------------------------------------------------------------------------
+
+function MarkdownText({
+  text,
+  style,
+  isUser,
+}: {
+  text: string;
+  style?: object;
+  isUser: boolean;
+}) {
+  const baseColor = isUser ? Colors.white : Colors.text.primary;
+  const boldColor = isUser ? Colors.white : Colors.emerald[400];
+
+  // Split on **...** patterns
+  const parts = text.split(/(\*\*[^*\n]+\*\*)/g);
+
+  return (
+    <RNText style={[{ lineHeight: 22, fontSize: FontSize.base, color: baseColor }, style]}>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <RNText key={i} style={{ fontWeight: '700', color: boldColor }}>
+              {part.slice(2, -2)}
+            </RNText>
+          );
+        }
+        return part;
+      })}
+    </RNText>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // TypingDots component
 // ---------------------------------------------------------------------------
 
@@ -64,19 +100,8 @@ function TypingDots() {
   const opacity3 = useSharedValue(0.3);
 
   useEffect(() => {
-    const pulse = (sv: SharedValue<number>, delay: number) => {
-      sv.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 400, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.3, { duration: 400, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        false
-      );
-    };
-    // Stagger the dots
     opacity1.value = withRepeat(
-      withSequence(withTiming(1, { duration: 400 }), withTiming(0.3, { duration: 400 })),
+      withSequence(withTiming(1, { duration: 400, easing: Easing.inOut(Easing.ease) }), withTiming(0.3, { duration: 400, easing: Easing.inOut(Easing.ease) })),
       -1
     );
     setTimeout(() => {
@@ -140,7 +165,6 @@ export default function CoachScreen() {
   const flatListRef = useRef<FlatList>(null);
   const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Pre-fill from simulator or other screens
   useEffect(() => {
     if (params.prefill && !input) {
       setInput(decodeURIComponent(params.prefill));
@@ -179,7 +203,6 @@ export default function CoachScreen() {
         const assistantId = (Date.now() + 1).toString();
         const timestamp = new Date().toISOString();
 
-        // Add empty message, then typewrite into it
         setMessages(prev => [
           ...prev,
           { id: assistantId, role: 'assistant', content: '', timestamp },
@@ -188,9 +211,8 @@ export default function CoachScreen() {
         setIsFetching(false);
         scrollToBottom();
 
-        // Typewriter effect
         let idx = 0;
-        const charsPerTick = Math.max(1, Math.ceil(fullResponse.length / 220)); // finish in ~220 ticks
+        const charsPerTick = Math.max(1, Math.ceil(fullResponse.length / 220));
         typewriterRef.current = setInterval(() => {
           idx = Math.min(idx + charsPerTick, fullResponse.length);
           setMessages(prev =>
@@ -210,7 +232,7 @@ export default function CoachScreen() {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content:
-            "I'm having trouble connecting right now. Please check that your Gemini API key is configured and try again.",
+            "I'm having trouble connecting right now. Please check your API key configuration and try again.",
           timestamp: new Date().toISOString(),
         };
         setMessages(prev => [...prev, errorMsg]);
@@ -221,7 +243,6 @@ export default function CoachScreen() {
     [isFetching, messages, profile, currentMonthBreakdown, scrollToBottom]
   );
 
-  // Cleanup typewriter on unmount
   useEffect(() => {
     return () => {
       if (typewriterRef.current) clearInterval(typewriterRef.current);
@@ -240,15 +261,10 @@ export default function CoachScreen() {
           </View>
         )}
         <View style={[styles.bubbleContent, isUser ? styles.userContent : styles.assistantContent]}>
-          <Text
-            variant="body"
-            style={[styles.messageText, isUser ? styles.userText : styles.assistantText]}
-          >
-            {item.content}
-            {isStreaming && (
-              <Text style={styles.cursor}>▌</Text>
-            )}
-          </Text>
+          <MarkdownText
+            text={item.content + (isStreaming ? '▌' : '')}
+            isUser={isUser}
+          />
           {!isStreaming && (
             <Text variant="caption" color="dim" style={styles.timestamp}>
               {formatRelativeTime(item.timestamp)}
@@ -271,7 +287,7 @@ export default function CoachScreen() {
             <Text variant="title">AI Coach</Text>
             <View style={styles.onlineRow}>
               <View style={styles.onlineDot} />
-              <Text variant="caption" color="muted">Gemini · Live carbon data</Text>
+              <Text variant="caption" color="muted">DeepSeek · Live carbon data</Text>
             </View>
           </View>
         </View>
@@ -281,7 +297,7 @@ export default function CoachScreen() {
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <MaterialCommunityIcons
-            name={showQuickPrompts ? 'chevron-down' : 'lightning-bolt'}
+            name={showQuickPrompts ? 'chevron-up' : 'lightning-bolt'}
             size={20}
             color={Colors.emerald[500]}
           />
@@ -301,7 +317,6 @@ export default function CoachScreen() {
           keyExtractor={item => item.id}
           contentContainerStyle={styles.messageList}
           showsVerticalScrollIndicator={false}
-          onContentSizeChange={scrollToBottom}
           ListFooterComponent={
             isFetching ? (
               <View style={styles.thinkingRow}>
@@ -391,9 +406,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background.primary,
   },
-  flex: {
-    flex: 1,
-  },
+  flex: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -442,13 +455,13 @@ const styles = StyleSheet.create({
   messageBubble: {
     flexDirection: 'row',
     gap: Spacing.sm,
+    alignItems: 'flex-start',
   },
   userBubble: {
     justifyContent: 'flex-end',
   },
   assistantBubble: {
     justifyContent: 'flex-start',
-    alignItems: 'flex-end',
   },
   assistantIcon: {
     width: 26,
@@ -465,7 +478,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.md,
-    gap: 4,
+    gap: 6,
   },
   userContent: {
     backgroundColor: Colors.emerald[600],
@@ -474,19 +487,6 @@ const styles = StyleSheet.create({
   assistantContent: {
     backgroundColor: Colors.background.elevated,
     borderBottomLeftRadius: 4,
-  },
-  messageText: {
-    lineHeight: 22,
-  },
-  userText: {
-    color: Colors.white,
-  },
-  assistantText: {
-    color: Colors.text.primary,
-  },
-  cursor: {
-    color: Colors.emerald[400],
-    fontWeight: '100',
   },
   timestamp: {
     alignSelf: 'flex-end',

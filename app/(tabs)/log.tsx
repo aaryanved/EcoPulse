@@ -3,12 +3,12 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   TextInput,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -145,12 +145,15 @@ export default function LogScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        {step === 'details' && (
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={22} color={Colors.text.secondary} />
-          </TouchableOpacity>
-        )}
-        <Text variant="title">Log Activity</Text>
+        <TouchableOpacity
+          onPress={handleBack}
+          style={[styles.backButton, step !== 'details' && styles.invisible]}
+          disabled={step !== 'details'}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={22} color={Colors.text.secondary} />
+        </TouchableOpacity>
+        <Text variant="title" style={styles.headerTitle}>Log Activity</Text>
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
@@ -332,11 +335,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing['2xl'],
     paddingVertical: Spacing.base,
-    gap: Spacing.md,
   },
   backButton: {
-    padding: Spacing.xs,
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginLeft: -Spacing.xs,
+  },
+  invisible: {
+    opacity: 0,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 38,
   },
   scrollContent: {
     paddingHorizontal: Spacing['2xl'],
