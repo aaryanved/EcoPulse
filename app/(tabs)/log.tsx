@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/Card';
 import { ActivityCard } from '@/components/carbon/ActivityCard';
 import { useCarbon } from '@/hooks/useCarbon';
 import { useClimatiqEstimate } from '@/hooks/useClimatiqEstimate';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { getCategoryColor, getCategoryIcon, getCategoryLabel } from '@/utils/carbon';
 import { Colors, Spacing, BorderRadius, FontSize } from '@/constants/theme';
 import type { ActivityCategory } from '@/types';
@@ -75,6 +76,7 @@ const SUBCATEGORIES: Record<ActivityCategory, Subcategory[]> = {
 
 export default function LogScreen() {
   const { activities, log, remove, isLoading } = useCarbon();
+  const { isDesktop } = useBreakpoint();
   const [step, setStep] = useState<LogStep>('category');
   const [selectedCategory, setSelectedCategory] = useState<ActivityCategory | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<Subcategory | null>(null);
@@ -157,7 +159,7 @@ export default function LogScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -358,6 +360,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing['4xl'],
     gap: Spacing.xl,
   },
+  scrollContentDesktop: { maxWidth: 760, alignSelf: 'center', width: '100%' },
   stepHint: {
     marginTop: -Spacing.sm,
   },

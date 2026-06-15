@@ -27,24 +27,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isInitialized: false,
 
   initialize: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    set({ session, user: session?.user ?? null });
-
-    if (session?.user) {
-      await get().fetchProfile(session.user.id);
-    }
-
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
       set({ session, user: session?.user ?? null });
 
       if (session?.user) {
-        await get().fetchProfile(session.user.id);
-      } else {
-        set({ profile: null });
+        await get().fetchProfile(session.user.id).catch(() => {});
       }
-    });
 
-    set({ isInitialized: true });
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        set({ session, user: session?.user ?? null });
+
+        if (session?.user) {
+          await get().fetchProfile(session.user.id).catch(() => {});
+        } else {
+          set({ profile: null });
+        }
+      });
+    } catch {
+      // Auth init failure — still unblock the app so the login screen renders
+    } finally {
+      set({ isInitialized: true });
+    }
   },
 
   signIn: async (email, password) => {

@@ -17,6 +17,7 @@ import { GoalCard } from '@/components/carbon/GoalCard';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useGoals } from '@/hooks/useGoals';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useCarbon } from '@/hooks/useCarbon';
 import type { ActivityCategory } from '@/types';
 import { getCategoryLabel } from '@/utils/carbon';
@@ -35,6 +36,7 @@ const PERIOD_OPTIONS: Array<{ value: Period; label: string }> = [
 
 export default function GoalsScreen() {
   const { goals, activeGoals, completedGoals, isLoading, refresh, createGoal } = useGoals();
+  const { isDesktop } = useBreakpoint();
   const { currentMonthBreakdown } = useCarbon();
 
   const [showForm, setShowForm] = useState(false);
@@ -90,7 +92,7 @@ export default function GoalsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -222,6 +224,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing['4xl'],
     gap: Spacing.xl,
   },
+  scrollContentDesktop: { maxWidth: 760, alignSelf: 'center', width: '100%' },
   form: { gap: Spacing.sm },
   formLabel: { marginTop: Spacing.sm, marginBottom: Spacing.xs },
   textInput: {

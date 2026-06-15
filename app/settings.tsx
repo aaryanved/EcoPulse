@@ -17,6 +17,7 @@ import { Divider } from '@/components/ui/Divider';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useCarbon } from '@/hooks/useCarbon';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { formatCarbonKg, getCarbonLevel } from '@/utils/carbon';
 import { Colors, Spacing, BorderRadius, FontSize } from '@/constants/theme';
 
@@ -35,6 +36,7 @@ export default function SettingsScreen() {
   const { profile, logout, saveProfile } = useAuth();
   const { currentMonthBreakdown, activities } = useCarbon();
 
+  const { isDesktop } = useBreakpoint();
   const [notifications, setNotifications] = useState(profile?.notifications_enabled ?? true);
   const [weeklyReport, setWeeklyReport] = useState(profile?.weekly_report_enabled ?? true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -112,7 +114,7 @@ export default function SettingsScreen() {
         <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]} showsVerticalScrollIndicator={false}>
 
         {/* Profile card */}
         <Card variant="elevated">
@@ -310,6 +312,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.base,
   },
   scrollContent: { padding: Spacing['2xl'], gap: Spacing.xl, paddingBottom: Spacing['4xl'] },
+  scrollContentDesktop: { maxWidth: 800, alignSelf: 'center', width: '100%' },
   profileSection: { flexDirection: 'row', alignItems: 'center', gap: Spacing.base },
   avatar: {
     width: 60,

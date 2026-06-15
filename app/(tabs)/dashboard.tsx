@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCarbon } from '@/hooks/useCarbon';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import { useGoals } from '@/hooks/useGoals';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import {
   formatCarbonKg,
   getCarbonLevel,
@@ -40,6 +41,7 @@ export default function DashboardScreen() {
     useCarbon();
   const { recommendations, refresh: refreshRecs, markRead, dismiss } = useRecommendations();
   const { activeGoals, refresh: refreshGoals, sync: syncGoals } = useGoals();
+  const { isDesktop } = useBreakpoint();
 
   const refreshAll = useCallback(async () => {
     await Promise.all([refresh(), refreshRecs(), refreshGoals()]);
@@ -49,7 +51,6 @@ export default function DashboardScreen() {
     refreshAll();
   }, [refreshAll]);
 
-  // Sync goal progress whenever breakdown changes
   useEffect(() => {
     if (currentMonthBreakdown.total > 0) {
       syncGoals(currentMonthBreakdown as unknown as Record<string, number>).catch(() => {});
@@ -61,246 +62,215 @@ export default function DashboardScreen() {
   const level = getCarbonLevel(total);
   const vsAverage = getVsGlobalAverage(total);
   const goalProgress = Math.min(total / goal, 1);
-
-  const levelColors = {
-    low: Colors.carbon.low,
-    medium: Colors.carbon.medium,
-    high: Colors.carbon.high,
-    critical: Colors.carbon.critical,
-  };
+  const levelColors = { low: Colors.carbon.low, medium: Colors.carbon.medium, high: Colors.carbon.high, critical: Colors.carbon.critical };
   const levelColor = levelColors[level];
 
   if (isLoading && activities.length === 0) {
     return <LoadingSpinner fullScreen label="Loading your dashboard..." />;
   }
 
+  // ── Reusable section fragments ──────────────────────────────────────────
+
+  const headerSection = (
+    <View style={[styles.header, isDesktop && styles.headerDesktop]}>
+      <View>
+        <Text variant="caption" color="muted">{getMonthLabel(new Date())}</Text>
+        <Text variant="title">
+          Hey {profile?.display_name?.split(' ')[0] ?? 'there'} 👋
+        </Text>
+      </View>
+      <View style={styles.headerActions}>
+        {(profile?.current_streak ?? 0) > 0 && (
+          <View style={styles.streakBadge}>
+            <MaterialCommunityIcons name="fire" size={16} color={Colors.warning} />
+            <Text style={styles.streakText}>{profile?.current_streak ?? 0}</Text>
+          </View>
+        )}
+        {!isDesktop && (
+          <TouchableOpacity onPress={() => router.push('/settings')}>
+            <MaterialCommunityIcons name="cog-outline" size={24} color={Colors.text.muted} />
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+
+  const heroCard = (
+    <LinearGradient
+      colors={[Colors.background.card, `${levelColor}15`, Colors.background.card]}
+      style={styles.heroCard}
+    >
+      <View style={styles.heroTop}>
+        <View>
+          <Text variant="label" color="muted">This month</Text>
+          <Text style={[styles.heroValue, { color: levelColor }]}>{formatCarbonKg(total)}</Text>
+          <Text variant="caption" color="muted">CO₂ equivalent</Text>
+        </View>
+        <Badge label={level.toUpperCase()} variant={level === 'low' ? 'success' : level === 'medium' ? 'warning' : 'error'} />
+      </View>
+      <View style={styles.goalSection}>
+        <View style={styles.goalHeader}>
+          <Text variant="caption" color="muted">Monthly goal: {formatCarbonKg(goal)}</Text>
+          <Text variant="caption" style={{ color: levelColor }}>{(goalProgress * 100).toFixed(0)}%</Text>
+        </View>
+        <ProgressBar progress={goalProgress} color={levelColor} height={6} />
+      </View>
+      <View style={styles.statsRow}>
+        <View style={styles.stat}>
+          <Text variant="caption" color="muted">vs. last month</Text>
+          <Text style={[styles.statValue, { color: reductionVsPrevious > 0 ? Colors.carbon.low : Colors.carbon.high }]}>
+            {reductionVsPrevious > 0 ? '↓' : '↑'} {Math.abs(reductionVsPrevious).toFixed(0)}%
+          </Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
+          <Text variant="caption" color="muted">vs. average</Text>
+          <Text style={[styles.statValue, { color: vsAverage < 0 ? Colors.carbon.low : Colors.carbon.high }]}>
+            {vsAverage > 0 ? '+' : ''}{vsAverage}%
+          </Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
+          <Text variant="caption" color="muted">trees needed</Text>
+          <Text style={[styles.statValue, { color: Colors.emerald[400] }]}>{carbonToTrees(total)}</Text>
+        </View>
+      </View>
+    </LinearGradient>
+  );
+
+  const quickActions = (
+    <View style={[styles.quickActions, isDesktop && styles.quickActionsDesktop]}>
+      <QuickActionButton icon="plus" label="Log Activity" color={Colors.emerald[500]} onPress={() => router.push('/(tabs)/log')} />
+      <QuickActionButton icon="receipt" label="Scan Receipt" color={Colors.info} onPress={() => router.push('/receipt-scanner')} />
+      <QuickActionButton icon="chart-timeline-variant" label="Simulator" color={Colors.warning} onPress={() => router.push('/simulator')} />
+      <QuickActionButton icon="robot" label="AI Coach" color={Colors.emerald[400]} onPress={() => router.push('/(tabs)/coach')} />
+    </View>
+  );
+
+  const equivalentsSection = total > 0 ? (
+    <Card variant="outlined">
+      <Text variant="label" color="muted" style={styles.sectionLabel}>What this means</Text>
+      <View style={styles.equivalents}>
+        <View style={styles.equivalent}>
+          <MaterialCommunityIcons name="airplane" size={24} color={Colors.info} />
+          <Text variant="caption" color="muted" style={{ flex: 1 }}>= {carbonToFlights(total)} short-haul flights</Text>
+        </View>
+        <View style={styles.equivalent}>
+          <MaterialCommunityIcons name="tree" size={24} color={Colors.carbon.low} />
+          <Text variant="caption" color="muted" style={{ flex: 1 }}>{carbonToTrees(total)} trees to offset this month</Text>
+        </View>
+      </View>
+    </Card>
+  ) : null;
+
+  const aiInsightsSection = recommendations.length > 0 ? (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text variant="title">AI Insights</Text>
+        <MaterialCommunityIcons name="robot" size={18} color={Colors.emerald[500]} />
+      </View>
+      {recommendations.slice(0, isDesktop ? 3 : 2).map(rec => (
+        <RecommendationCard key={rec.id} recommendation={rec} onDismiss={dismiss} onRead={markRead} />
+      ))}
+    </View>
+  ) : null;
+
+  const goalsSection = activeGoals.length > 0 ? (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text variant="title">Goals</Text>
+        <TouchableOpacity onPress={() => router.push('/goals')}>
+          <Text variant="caption" color="secondary">Manage</Text>
+        </TouchableOpacity>
+      </View>
+      {activeGoals.slice(0, 2).map(g => (
+        <GoalCard key={g.id} goal={g} />
+      ))}
+    </View>
+  ) : null;
+
+  const recentActivities = (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text variant="title">Recent</Text>
+        {activities.length > 5 && (
+          <TouchableOpacity onPress={() => router.push('/(tabs)/log')}>
+            <Text variant="caption" color="secondary">View all</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {activities.length === 0 ? (
+        <Card variant="outlined">
+          <Text variant="body" color="muted" style={styles.noActivities}>
+            No activities logged this month. Start tracking!
+          </Text>
+        </Card>
+      ) : (
+        <View style={styles.activityList}>
+          {activities.slice(0, isDesktop ? 8 : 5).map(activity => (
+            <ActivityCard key={activity.id} activity={activity} onDelete={remove} />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
+  // ── Desktop two-column layout ────────────────────────────────────────────
+
+  if (isDesktop) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'right', 'bottom']}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContentDesktop}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refreshAll} tintColor={Colors.emerald[500]} />}
+        >
+          {headerSection}
+          <View style={styles.desktopGrid}>
+            {/* Left column: hero stats + actions */}
+            <View style={styles.desktopLeft}>
+              {heroCard}
+              {quickActions}
+              <GridIntensityCard />
+              {equivalentsSection}
+            </View>
+            {/* Right column: insights, goals, breakdown, recent */}
+            <View style={styles.desktopRight}>
+              {aiInsightsSection}
+              {goalsSection}
+              <CategoryBreakdown breakdown={currentMonthBreakdown} />
+              {recentActivities}
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Mobile single-column layout ──────────────────────────────────────────
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refreshAll} tintColor={Colors.emerald[500]} />
-        }
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refreshAll} tintColor={Colors.emerald[500]} />}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text variant="caption" color="muted">
-              {getMonthLabel(new Date())}
-            </Text>
-            <Text variant="title">
-              Hey {profile?.display_name?.split(' ')[0] ?? 'there'} 👋
-            </Text>
-          </View>
-          <View style={styles.headerActions}>
-            {(profile?.current_streak ?? 0) > 0 && (
-              <View style={styles.streakBadge}>
-                <MaterialCommunityIcons name="fire" size={16} color={Colors.warning} />
-                <Text style={styles.streakText}>{profile?.current_streak ?? 0}</Text>
-              </View>
-            )}
-            <TouchableOpacity onPress={() => router.push('/settings')}>
-              <MaterialCommunityIcons name="cog-outline" size={24} color={Colors.text.muted} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Carbon Hero Card */}
-        <LinearGradient
-          colors={[Colors.background.card, `${levelColor}15`, Colors.background.card]}
-          style={styles.heroCard}
-        >
-          <View style={styles.heroTop}>
-            <View>
-              <Text variant="label" color="muted">This month</Text>
-              <Text style={[styles.heroValue, { color: levelColor }]}>
-                {formatCarbonKg(total)}
-              </Text>
-              <Text variant="caption" color="muted">CO₂ equivalent</Text>
-            </View>
-            <Badge
-              label={level.toUpperCase()}
-              variant={level === 'low' ? 'success' : level === 'medium' ? 'warning' : 'error'}
-            />
-          </View>
-
-          <View style={styles.goalSection}>
-            <View style={styles.goalHeader}>
-              <Text variant="caption" color="muted">
-                Monthly goal: {formatCarbonKg(goal)}
-              </Text>
-              <Text variant="caption" style={{ color: levelColor }}>
-                {(goalProgress * 100).toFixed(0)}%
-              </Text>
-            </View>
-            <ProgressBar progress={goalProgress} color={levelColor} height={6} />
-          </View>
-
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Text variant="caption" color="muted">vs. last month</Text>
-              <Text
-                style={[
-                  styles.statValue,
-                  { color: reductionVsPrevious > 0 ? Colors.carbon.low : Colors.carbon.high },
-                ]}
-              >
-                {reductionVsPrevious > 0 ? '↓' : '↑'} {Math.abs(reductionVsPrevious).toFixed(0)}%
-              </Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text variant="caption" color="muted">vs. average</Text>
-              <Text
-                style={[
-                  styles.statValue,
-                  { color: vsAverage < 0 ? Colors.carbon.low : Colors.carbon.high },
-                ]}
-              >
-                {vsAverage > 0 ? '+' : ''}{vsAverage}%
-              </Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text variant="caption" color="muted">trees needed</Text>
-              <Text style={[styles.statValue, { color: Colors.emerald[400] }]}>
-                {carbonToTrees(total)}
-              </Text>
-            </View>
-          </View>
-        </LinearGradient>
-
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <QuickActionButton
-            icon="plus"
-            label="Log Activity"
-            color={Colors.emerald[500]}
-            onPress={() => router.push('/(tabs)/log')}
-          />
-          <QuickActionButton
-            icon="receipt"
-            label="Scan Receipt"
-            color={Colors.info}
-            onPress={() => router.push('/receipt-scanner')}
-          />
-          <QuickActionButton
-            icon="chart-timeline-variant"
-            label="Simulator"
-            color={Colors.warning}
-            onPress={() => router.push('/simulator')}
-          />
-          <QuickActionButton
-            icon="robot"
-            label="AI Coach"
-            color={Colors.emerald[400]}
-            onPress={() => router.push('/(tabs)/coach')}
-          />
-        </View>
-
-        {/* Live Grid Intensity */}
+        {headerSection}
+        {heroCard}
+        {quickActions}
         <GridIntensityCard />
-
-        {/* AI Recommendations */}
-        {recommendations.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text variant="title">AI Insights</Text>
-              <MaterialCommunityIcons name="robot" size={18} color={Colors.emerald[500]} />
-            </View>
-            {recommendations.slice(0, 2).map(rec => (
-              <RecommendationCard
-                key={rec.id}
-                recommendation={rec}
-                onDismiss={dismiss}
-                onRead={markRead}
-              />
-            ))}
-          </View>
-        )}
-
-        {/* Active Goals */}
-        {activeGoals.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text variant="title">Goals</Text>
-              <TouchableOpacity onPress={() => router.push('/goals')}>
-                <Text variant="caption" color="secondary">Manage</Text>
-              </TouchableOpacity>
-            </View>
-            {activeGoals.slice(0, 2).map(goal => (
-              <GoalCard key={goal.id} goal={goal} />
-            ))}
-          </View>
-        )}
-
-        {/* Category Breakdown */}
+        {aiInsightsSection}
+        {goalsSection}
         <CategoryBreakdown breakdown={currentMonthBreakdown} />
-
-        {/* Equivalents */}
-        {total > 0 && (
-          <Card variant="outlined">
-            <Text variant="label" color="muted" style={styles.sectionLabel}>
-              What this means
-            </Text>
-            <View style={styles.equivalents}>
-              <View style={styles.equivalent}>
-                <MaterialCommunityIcons name="airplane" size={24} color={Colors.info} />
-                <Text variant="caption" color="muted" style={{ flex: 1 }}>
-                  = {carbonToFlights(total)} short-haul flights
-                </Text>
-              </View>
-              <View style={styles.equivalent}>
-                <MaterialCommunityIcons name="tree" size={24} color={Colors.carbon.low} />
-                <Text variant="caption" color="muted" style={{ flex: 1 }}>
-                  {carbonToTrees(total)} trees to offset this month
-                </Text>
-              </View>
-            </View>
-          </Card>
-        )}
-
-        {/* Recent Activities */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text variant="title">Recent</Text>
-            {activities.length > 5 && (
-              <TouchableOpacity onPress={() => router.push('/(tabs)/log')}>
-                <Text variant="caption" color="secondary">View all</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          {activities.length === 0 ? (
-            <Card variant="outlined">
-              <Text variant="body" color="muted" style={styles.noActivities}>
-                No activities logged this month. Start tracking!
-              </Text>
-            </Card>
-          ) : (
-            <View style={styles.activityList}>
-              {activities.slice(0, 5).map(activity => (
-                <ActivityCard key={activity.id} activity={activity} onDelete={remove} />
-              ))}
-            </View>
-          )}
-        </View>
+        {equivalentsSection}
+        {recentActivities}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function QuickActionButton({
-  icon,
-  label,
-  color,
-  onPress,
-}: {
-  icon: string;
-  label: string;
-  color: string;
-  onPress: () => void;
-}) {
+function QuickActionButton({ icon, label, color, onPress }: { icon: string; label: string; color: string; onPress: () => void }) {
   return (
     <TouchableOpacity style={styles.quickAction} onPress={onPress}>
       <View style={[styles.quickActionIcon, { backgroundColor: `${color}20` }]}>
@@ -313,12 +283,41 @@ function QuickActionButton({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
+
+  // Mobile layout
   scrollContent: { padding: Spacing['2xl'], gap: Spacing.base, paddingBottom: Spacing['4xl'] },
+
+  // Desktop layout
+  scrollContentDesktop: {
+    padding: Spacing['2xl'],
+    paddingBottom: Spacing['4xl'],
+    maxWidth: 1280,
+    alignSelf: 'center',
+    width: '100%',
+    gap: Spacing.lg,
+  },
+  desktopGrid: {
+    flexDirection: 'row',
+    gap: Spacing['2xl'],
+    alignItems: 'flex-start',
+  },
+  desktopLeft: {
+    flex: 58,
+    gap: Spacing.base,
+  },
+  desktopRight: {
+    flex: 42,
+    gap: Spacing.base,
+  },
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.sm,
+  },
+  headerDesktop: {
+    marginBottom: Spacing.base,
   },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   streakBadge: {
@@ -354,6 +353,7 @@ const styles = StyleSheet.create({
   statValue: { fontSize: FontSize.md, fontWeight: '700' },
   statDivider: { width: 1, height: 30, backgroundColor: Colors.divider },
   quickActions: { flexDirection: 'row', justifyContent: 'space-between' },
+  quickActionsDesktop: { justifyContent: 'flex-start', gap: Spacing.base },
   quickAction: { alignItems: 'center', gap: Spacing.xs },
   quickActionIcon: {
     width: 56,
@@ -363,11 +363,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   section: { gap: Spacing.md },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionLabel: { marginBottom: Spacing.md },
   equivalents: { gap: Spacing.md },
   equivalent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },

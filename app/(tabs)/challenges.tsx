@@ -17,6 +17,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useChallenges } from '@/hooks/useChallenges';
 import { useAuth } from '@/hooks/useAuth';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import type { ChallengeRow, UserChallengeRow } from '@/types';
 import { Colors, Spacing, BorderRadius, FontSize } from '@/constants/theme';
 
@@ -44,6 +45,7 @@ export default function ChallengesScreen() {
   } = useChallenges();
 
   const [activeTab, setActiveTab] = useState<TabId>('active');
+  const { isDesktop } = useBreakpoint();
 
   useEffect(() => {
     refresh();
@@ -99,7 +101,7 @@ export default function ChallengesScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={isLoading} onRefresh={refresh} tintColor={Colors.emerald[500]} />
@@ -116,9 +118,13 @@ export default function ChallengesScreen() {
                 onAction={() => setActiveTab('available')}
               />
             ) : (
-              activeChallenges.map(uc => (
-                <ActiveChallengeCard key={uc.id} userChallenge={uc} />
-              ))
+              <View style={[styles.cardList, isDesktop && styles.cardGrid]}>
+                {activeChallenges.map(uc => (
+                  <View key={uc.id} style={isDesktop && styles.cardGridItem}>
+                    <ActiveChallengeCard userChallenge={uc} />
+                  </View>
+                ))}
+              </View>
             )}
             {completedChallenges.length > 0 && (
               <View style={styles.completedSection}>
@@ -144,13 +150,16 @@ export default function ChallengesScreen() {
                 description="You've joined all available challenges."
               />
             ) : (
-              availableChallenges.map(challenge => (
-                <AvailableChallengeCard
-                  key={challenge.id}
-                  challenge={challenge}
-                  onJoin={() => handleJoin(challenge.id, challenge.title)}
-                />
-              ))
+              <View style={[styles.cardList, isDesktop && styles.cardGrid]}>
+                {availableChallenges.map(challenge => (
+                  <View key={challenge.id} style={isDesktop && styles.cardGridItem}>
+                    <AvailableChallengeCard
+                      challenge={challenge}
+                      onJoin={() => handleJoin(challenge.id, challenge.title)}
+                    />
+                  </View>
+                ))}
+              </View>
             )}
           </>
         )}
@@ -442,6 +451,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing['2xl'],
     paddingBottom: Spacing['4xl'],
     gap: Spacing.md,
+  },
+  scrollContentDesktop: {
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  cardList: { gap: Spacing.md },
+  cardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.base,
+  },
+  cardGridItem: {
+    flex: 1,
+    minWidth: 340,
   },
   completedSection: { gap: Spacing.sm, marginTop: Spacing.md },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },

@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
 import { useCarbon } from '@/hooks/useCarbon';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { formatCarbonKg, carbonToTrees, carbonToFlights, carbonToDrivingKm, getCarbonLevel } from '@/utils/carbon';
 import { Colors, Spacing, BorderRadius, FontSize } from '@/constants/theme';
 
@@ -97,6 +98,7 @@ function computeSavings(
 export default function SimulatorScreen() {
   const { profile } = useAuth();
   const { currentMonthBreakdown } = useCarbon();
+  const { isDesktop } = useBreakpoint();
 
   const transportMode = profile?.transport_mode ?? 'car';
   const dietType = profile?.diet_type ?? 'omnivore';
@@ -177,7 +179,7 @@ export default function SimulatorScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]} showsVerticalScrollIndicator={false}>
 
         {/* Carbon Twin */}
         <Card variant="glow">
@@ -377,6 +379,7 @@ const styles = StyleSheet.create({
     borderColor: `${Colors.emerald[700]}60`,
   },
   scrollContent: { padding: Spacing['2xl'], gap: Spacing.xl, paddingBottom: Spacing['4xl'] },
+  scrollContentDesktop: { maxWidth: 960, alignSelf: 'center', width: '100%' },
   twinRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingVertical: Spacing.base },
   twin: { alignItems: 'center', gap: Spacing.xs },
   twinArrow: { alignItems: 'center', gap: 4 },

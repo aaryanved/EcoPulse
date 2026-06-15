@@ -28,6 +28,7 @@ import { geminiService } from '@/services/gemini';
 import { useAuth } from '@/hooks/useAuth';
 import { useCarbon } from '@/hooks/useCarbon';
 import { useRecommendations } from '@/hooks/useRecommendations';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import type { ChatMessage } from '@/types';
 import { Colors, Spacing, BorderRadius, FontSize } from '@/constants/theme';
 import { formatRelativeTime } from '@/utils/date';
@@ -155,6 +156,7 @@ export default function CoachScreen() {
   const { currentMonthBreakdown } = useCarbon();
   const { requestWeeklyReport, requestReductionPlan } = useRecommendations();
   const params = useLocalSearchParams<{ prefill?: string }>();
+  const { isDesktop } = useBreakpoint();
 
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState('');
@@ -167,7 +169,11 @@ export default function CoachScreen() {
 
   useEffect(() => {
     if (params.prefill && !input) {
-      setInput(decodeURIComponent(params.prefill));
+      try {
+        setInput(decodeURIComponent(params.prefill));
+      } catch {
+        setInput(params.prefill);
+      }
     }
   }, [params.prefill]);
 
@@ -177,7 +183,7 @@ export default function CoachScreen() {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!text.trim() || isFetching) return;
+      if (!text.trim() || isFetching || typewriterRef.current) return;
 
       const userMsg: ChatMessage = {
         id: Date.now().toString(),
@@ -213,7 +219,7 @@ export default function CoachScreen() {
 
         let idx = 0;
         const charsPerTick = Math.max(1, Math.ceil(fullResponse.length / 220));
-        typewriterRef.current = setInterval(() => {
+        const intervalId = setInterval(() => {
           idx = Math.min(idx + charsPerTick, fullResponse.length);
           setMessages(prev =>
             prev.map(m =>
@@ -221,11 +227,12 @@ export default function CoachScreen() {
             )
           );
           if (idx >= fullResponse.length) {
-            clearInterval(typewriterRef.current!);
-            typewriterRef.current = null;
+            clearInterval(intervalId);
+            if (typewriterRef.current === intervalId) typewriterRef.current = null;
             setStreamingId(null);
           }
         }, TYPEWRITER_SPEED_MS);
+        typewriterRef.current = intervalId;
       } catch {
         setIsFetching(false);
         const errorMsg: ChatMessage = {
@@ -277,6 +284,7 @@ export default function CoachScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={[styles.innerWrap, isDesktop && styles.innerWrapDesktop]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -376,10 +384,10 @@ export default function CoachScreen() {
           <TouchableOpacity
             style={[
               styles.sendButton,
-              (!input.trim() || isFetching) && styles.sendButtonDisabled,
+              (!input.trim() || isFetching || !!streamingId) && styles.sendButtonDisabled,
             ]}
             onPress={() => sendMessage(input)}
-            disabled={!input.trim() || isFetching}
+            disabled={!input.trim() || isFetching || !!streamingId}
           >
             {isFetching ? (
               <ActivityIndicator size="small" color={Colors.emerald[400]} />
@@ -393,6 +401,7 @@ export default function CoachScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -405,6 +414,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.primary,
+  },
+  innerWrap: {
+    flex: 1,
+  },
+  innerWrapDesktop: {
+    maxWidth: 900,
+    alignSelf: 'center',
+    width: '100%',
   },
   flex: { flex: 1 },
   header: {

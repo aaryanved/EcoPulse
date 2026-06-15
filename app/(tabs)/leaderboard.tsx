@@ -15,6 +15,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useLeaderboardStore } from '@/stores/leaderboardStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useCarbon } from '@/hooks/useCarbon';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { formatCarbonKg } from '@/utils/carbon';
 import { Colors, Spacing, BorderRadius, FontSize } from '@/constants/theme';
 
@@ -22,6 +23,7 @@ export default function LeaderboardScreen() {
   const { user, profile } = useAuth();
   const { currentMonthBreakdown, reductionVsPrevious } = useCarbon();
   const { entries, isLoading, fetchLeaderboard } = useLeaderboardStore();
+  const { isDesktop } = useBreakpoint();
 
   useEffect(() => {
     fetchLeaderboard();
@@ -56,7 +58,7 @@ export default function LeaderboardScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={isLoading} onRefresh={() => fetchLeaderboard()} tintColor={Colors.emerald[500]} />
@@ -208,6 +210,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scrollContent: { paddingHorizontal: Spacing['2xl'], paddingBottom: Spacing['4xl'], gap: Spacing.xl },
+  scrollContentDesktop: { maxWidth: 860, alignSelf: 'center', width: '100%' },
   podium: {
     flexDirection: 'row',
     justifyContent: 'center',

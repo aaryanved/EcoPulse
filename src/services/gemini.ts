@@ -169,7 +169,7 @@ export async function sendChatMessage(
     { role: 'user', content: userMessage },
   ];
 
-  return callAI(messages, { temperature: 0.75, maxTokens: 512 });
+  return callAI(messages, { temperature: 0.75, maxTokens: 1024 });
 }
 
 export async function generateWeeklyReport(
