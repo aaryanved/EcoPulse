@@ -151,8 +151,11 @@ export default function LogScreen() {
           onPress={handleBack}
           style={[styles.backButton, step !== 'details' && styles.invisible]}
           disabled={step !== 'details'}
+          accessibilityRole="button"
+          accessibilityLabel="Go back to categories"
+          accessibilityElementsHidden={step !== 'details'}
         >
-          <MaterialCommunityIcons name="arrow-left" size={22} color={Colors.text.secondary} />
+          <MaterialCommunityIcons name="arrow-left" size={22} color={Colors.text.secondary} accessible={false} />
         </TouchableOpacity>
         <Text variant="title" style={styles.headerTitle}>Log Activity</Text>
         <View style={styles.headerSpacer} />
@@ -177,11 +180,13 @@ export default function LogScreen() {
                     key={cat}
                     style={styles.categoryCard}
                     onPress={() => selectCategory(cat)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Log ${getCategoryLabel(cat)} activity`}
                   >
-                    <View style={[styles.categoryIcon, { backgroundColor: `${color}20` }]}>
-                      <MaterialCommunityIcons name={icon as any} size={28} color={color} />
+                    <View style={[styles.categoryIcon, { backgroundColor: `${color}20` }]} accessible={false}>
+                      <MaterialCommunityIcons name={icon as any} size={28} color={color} accessible={false} />
                     </View>
-                    <Text variant="body" weight="medium" style={styles.categoryLabel}>
+                    <Text variant="body" weight="medium" style={styles.categoryLabel} accessible={false}>
                       {getCategoryLabel(cat)}
                     </Text>
                   </TouchableOpacity>
@@ -234,14 +239,18 @@ export default function LogScreen() {
                     selectedSubcategory?.id === sub.id && styles.subcategorySelected,
                   ]}
                   onPress={() => setSelectedSubcategory(sub)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selectedSubcategory?.id === sub.id }}
+                  accessibilityLabel={`${sub.label}, per ${sub.unit}`}
                 >
                   <Text
                     variant="body"
                     style={selectedSubcategory?.id === sub.id ? styles.subcategoryTextSelected : undefined}
+                    accessible={false}
                   >
                     {sub.label}
                   </Text>
-                  <Text variant="caption" color="muted">
+                  <Text variant="caption" color="muted" accessible={false}>
                     per {sub.unit}
                   </Text>
                 </TouchableOpacity>
@@ -262,6 +271,7 @@ export default function LogScreen() {
                     placeholder="0"
                     placeholderTextColor={Colors.text.dim}
                     selectTextOnFocus
+                    accessibilityLabel={`Quantity in ${selectedSubcategory?.unit ?? 'units'}`}
                   />
                   <Text variant="body" color="secondary" style={styles.unitLabel}>
                     {selectedSubcategory.unit}
@@ -306,6 +316,7 @@ export default function LogScreen() {
                   placeholderTextColor={Colors.text.dim}
                   multiline
                   maxLength={200}
+                  accessibilityLabel="Optional note for this activity"
                 />
 
                 <Button

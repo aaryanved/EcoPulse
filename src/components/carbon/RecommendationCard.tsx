@@ -22,16 +22,23 @@ const TYPE_CONFIG: Record<string, { icon: string; color: string; label: string }
 export function RecommendationCard({ recommendation, onDismiss, onRead }: Props) {
   const config = TYPE_CONFIG[recommendation.type] ?? TYPE_CONFIG.tip;
 
+  const savingsHint = recommendation.potential_savings_kg > 0
+    ? `, saves approximately ${recommendation.potential_savings_kg.toFixed(1)} kg CO2 per month`
+    : '';
+
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={() => onRead(recommendation.id)}
       activeOpacity={0.9}
+      accessibilityRole="button"
+      accessibilityLabel={`${config.label}: ${recommendation.title}${savingsHint}`}
+      accessibilityHint="Tap to mark as read"
     >
-      <View style={[styles.iconWrapper, { backgroundColor: `${config.color}15` }]}>
-        <MaterialCommunityIcons name={config.icon as any} size={20} color={config.color} />
+      <View style={[styles.iconWrapper, { backgroundColor: `${config.color}15` }]} accessible={false}>
+        <MaterialCommunityIcons name={config.icon as any} size={20} color={config.color} accessible={false} />
       </View>
-      <View style={styles.content}>
+      <View style={styles.content} accessible={false}>
         <Text variant="label" style={{ color: config.color }}>
           {config.label}
         </Text>
@@ -42,8 +49,8 @@ export function RecommendationCard({ recommendation, onDismiss, onRead }: Props)
           {recommendation.content}
         </Text>
         {recommendation.potential_savings_kg > 0 && (
-          <View style={styles.savingsRow}>
-            <MaterialCommunityIcons name="leaf" size={12} color={Colors.carbon.low} />
+          <View style={styles.savingsRow} accessible={false}>
+            <MaterialCommunityIcons name="leaf" size={12} color={Colors.carbon.low} accessible={false} />
             <Text variant="caption" style={{ color: Colors.carbon.low }}>
               Save ~{recommendation.potential_savings_kg.toFixed(1)} kg CO₂/mo
             </Text>
@@ -53,8 +60,10 @@ export function RecommendationCard({ recommendation, onDismiss, onRead }: Props)
       <TouchableOpacity
         onPress={() => onDismiss(recommendation.id)}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel={`Dismiss ${recommendation.title}`}
       >
-        <MaterialCommunityIcons name="close" size={16} color={Colors.text.dim} />
+        <MaterialCommunityIcons name="close" size={16} color={Colors.text.dim} accessible={false} />
       </TouchableOpacity>
     </TouchableOpacity>
   );

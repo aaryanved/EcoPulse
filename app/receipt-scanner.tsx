@@ -136,14 +136,24 @@ export default function ReceiptScannerScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-          <MaterialCommunityIcons name="close" size={22} color={Colors.white} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.closeButton}
+          accessibilityRole="button"
+          accessibilityLabel="Close receipt scanner"
+        >
+          <MaterialCommunityIcons name="close" size={22} color={Colors.white} accessible={false} />
         </TouchableOpacity>
         <Text variant="title" style={styles.headerTitle}>
           Scan Receipt
         </Text>
-        <TouchableOpacity onPress={pickFromGallery} style={styles.galleryButton}>
-          <MaterialCommunityIcons name="image-outline" size={22} color={Colors.white} />
+        <TouchableOpacity
+          onPress={pickFromGallery}
+          style={styles.galleryButton}
+          accessibilityRole="button"
+          accessibilityLabel="Pick image from gallery"
+        >
+          <MaterialCommunityIcons name="image-outline" size={22} color={Colors.white} accessible={false} />
         </TouchableOpacity>
       </View>
 
@@ -157,8 +167,13 @@ export default function ReceiptScannerScreen() {
               </Text>
             </View>
           </CameraView>
-          <TouchableOpacity style={styles.captureButton} onPress={capturePhoto}>
-            <View style={styles.captureInner} />
+          <TouchableOpacity
+            style={styles.captureButton}
+            onPress={capturePhoto}
+            accessibilityRole="button"
+            accessibilityLabel="Capture photo of receipt"
+          >
+            <View style={styles.captureInner} accessible={false} />
           </TouchableOpacity>
         </View>
       )}

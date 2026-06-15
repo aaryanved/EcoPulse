@@ -29,15 +29,19 @@ export function OnboardingOption({ icon, label, description, selected, onSelect 
       onPressIn={() => { scale.value = withSpring(0.97); }}
       onPressOut={() => { scale.value = withSpring(1); }}
       activeOpacity={0.9}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      accessibilityLabel={description ? `${label}. ${description}` : label}
     >
-      <View style={[styles.iconWrapper, selected && styles.iconSelected]}>
+      <View style={[styles.iconWrapper, selected && styles.iconSelected]} accessible={false}>
         <MaterialCommunityIcons
           name={icon as any}
           size={26}
           color={selected ? Colors.background.primary : Colors.emerald[600]}
+          accessible={false}
         />
       </View>
-      <View style={styles.textWrapper}>
+      <View style={styles.textWrapper} accessible={false}>
         <Text variant="body" weight="semibold" style={selected ? styles.labelSelected : undefined}>
           {label}
         </Text>
@@ -48,7 +52,7 @@ export function OnboardingOption({ icon, label, description, selected, onSelect 
         )}
       </View>
       {selected && (
-        <MaterialCommunityIcons name="check-circle" size={22} color={Colors.emerald[500]} />
+        <MaterialCommunityIcons name="check-circle" size={22} color={Colors.emerald[500]} accessible={false} />
       )}
     </AnimatedTouchable>
   );

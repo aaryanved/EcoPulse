@@ -18,10 +18,10 @@ export function LoadingSpinner({
 }: Props) {
   if (fullScreen) {
     return (
-      <View style={styles.fullScreen}>
-        <ActivityIndicator size={size} color={color} />
+      <View style={styles.fullScreen} accessible accessibilityLiveRegion="polite" accessibilityLabel={label ?? 'Loading'}>
+        <ActivityIndicator size={size} color={color} accessible={false} />
         {label && (
-          <Text variant="caption" color="muted" style={styles.label}>
+          <Text variant="caption" color="muted" style={styles.label} accessible={false}>
             {label}
           </Text>
         )}
@@ -30,10 +30,10 @@ export function LoadingSpinner({
   }
 
   return (
-    <View style={styles.inline}>
-      <ActivityIndicator size={size} color={color} />
+    <View style={styles.inline} accessible accessibilityLiveRegion="polite" accessibilityLabel={label ?? 'Loading'}>
+      <ActivityIndicator size={size} color={color} accessible={false} />
       {label && (
-        <Text variant="caption" color="muted" style={styles.label}>
+        <Text variant="caption" color="muted" style={styles.label} accessible={false}>
           {label}
         </Text>
       )}

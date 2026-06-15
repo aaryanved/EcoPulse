@@ -17,9 +17,13 @@ export function ActivityCard({ activity, onDelete }: Props) {
   const icon = getCategoryIcon(activity.category);
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.iconWrapper, { backgroundColor: `${color}15` }]}>
-        <MaterialCommunityIcons name={icon as any} size={22} color={color} />
+    <View
+      style={styles.container}
+      accessible={!onDelete}
+      accessibilityLabel={!onDelete ? `${activity.description}, ${formatCarbonKg(activity.carbon_kg)} CO2` : undefined}
+    >
+      <View style={[styles.iconWrapper, { backgroundColor: `${color}15` }]} accessible={false}>
+        <MaterialCommunityIcons name={icon as any} size={22} color={color} accessible={false} />
       </View>
       <View style={styles.content}>
         <Text variant="body" weight="medium" numberOfLines={1}>
@@ -29,7 +33,7 @@ export function ActivityCard({ activity, onDelete }: Props) {
           {activity.subcategory} · {formatRelativeTime(activity.activity_date)}
         </Text>
       </View>
-      <View style={styles.right}>
+      <View style={styles.right} accessible={false}>
         <Text style={[styles.carbon, { color }]}>
           {formatCarbonKg(activity.carbon_kg)}
         </Text>
@@ -42,8 +46,10 @@ export function ActivityCard({ activity, onDelete }: Props) {
           onPress={() => onDelete(activity.id)}
           style={styles.deleteButton}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${activity.description}`}
         >
-          <MaterialCommunityIcons name="close" size={16} color={Colors.text.dim} />
+          <MaterialCommunityIcons name="close" size={16} color={Colors.text.dim} accessible={false} />
         </TouchableOpacity>
       )}
     </View>

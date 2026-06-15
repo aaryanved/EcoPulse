@@ -87,11 +87,15 @@ export default function ChallengesScreen() {
             key={tab.id}
             style={[styles.tab, activeTab === tab.id && styles.tabActive]}
             onPress={() => setActiveTab(tab.id)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === tab.id }}
+            accessibilityLabel={tab.count !== undefined && tab.count > 0 ? `${tab.label}, ${tab.count} items` : tab.label}
           >
             <Text
               variant="body"
               weight="semibold"
               style={activeTab === tab.id ? styles.tabTextActive : styles.tabText}
+              accessible={false}
             >
               {tab.label}
               {tab.count !== undefined && tab.count > 0 ? ` (${tab.count})` : ''}
@@ -296,8 +300,13 @@ function AvailableChallengeCard({
             · {challenge.duration_days} days
           </Text>
         </View>
-        <TouchableOpacity style={challengeCardStyles.joinButton} onPress={onJoin}>
-          <Text variant="caption" color="secondary" weight="semibold">
+        <TouchableOpacity
+          style={challengeCardStyles.joinButton}
+          onPress={onJoin}
+          accessibilityRole="button"
+          accessibilityLabel={`Start challenge: ${challenge.title}`}
+        >
+          <Text variant="caption" color="secondary" weight="semibold" accessible={false}>
             Start Challenge
           </Text>
         </TouchableOpacity>

@@ -82,11 +82,14 @@ export function GridIntensityCard({ zone = 'US-CA' }: GridIntensityCardProps) {
           onPress={refresh}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh grid intensity"
+          accessibilityState={{ disabled: isLoading, busy: isLoading }}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={Colors.text.muted} />
+            <ActivityIndicator size="small" color={Colors.text.muted} accessible={false} />
           ) : (
-            <MaterialCommunityIcons name="refresh" size={16} color={Colors.text.muted} />
+            <MaterialCommunityIcons name="refresh" size={16} color={Colors.text.muted} accessible={false} />
           )}
         </TouchableOpacity>
       </View>

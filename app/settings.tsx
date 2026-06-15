@@ -107,8 +107,12 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color={Colors.text.secondary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <MaterialCommunityIcons name="arrow-left" size={22} color={Colors.text.secondary} accessible={false} />
         </TouchableOpacity>
         <Text variant="title">Settings</Text>
         <View style={{ width: 22 }} />
@@ -188,6 +192,8 @@ export default function SettingsScreen() {
                 onValueChange={toggleNotifications}
                 trackColor={{ false: Colors.background.elevated, true: `${Colors.emerald[500]}60` }}
                 thumbColor={notifications ? Colors.emerald[500] : Colors.text.dim}
+                accessibilityLabel="Push notifications"
+                accessibilityRole="switch"
               />
             </View>
 
@@ -206,6 +212,8 @@ export default function SettingsScreen() {
                 onValueChange={toggleWeeklyReport}
                 trackColor={{ false: Colors.background.elevated, true: `${Colors.emerald[500]}60` }}
                 thumbColor={weeklyReport ? Colors.emerald[500] : Colors.text.dim}
+                accessibilityLabel="Weekly AI report"
+                accessibilityRole="switch"
               />
             </View>
           </Card>
@@ -218,6 +226,10 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={styles.settingRow}
               onPress={() => setShowZonePicker(v => !v)}
+              accessibilityRole="button"
+              accessibilityLabel="Electricity grid zone"
+              accessibilityHint="Tap to select your grid zone for live carbon intensity"
+              accessibilityState={{ expanded: showZonePicker }}
             >
               <View style={styles.settingLeft}>
                 <MaterialCommunityIcons name="transmission-tower" size={20} color={Colors.emerald[500]} />
@@ -243,9 +255,12 @@ export default function SettingsScreen() {
                     key={z.zone}
                     style={styles.zoneOption}
                     onPress={() => { setSelectedZone(z.zone); setShowZonePicker(false); }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${z.label} (${z.zone})`}
+                    accessibilityState={{ selected: selectedZone === z.zone }}
                   >
-                    <Text variant="body">{z.label}</Text>
-                    <Text variant="caption" color="muted">{z.zone}</Text>
+                    <Text variant="body" accessible={false}>{z.label}</Text>
+                    <Text variant="caption" color="muted" accessible={false}>{z.zone}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -257,7 +272,13 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text variant="label" color="muted">Account</Text>
           <Card>
-            <TouchableOpacity style={styles.settingRow} onPress={handleExportData}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleExportData}
+              accessibilityRole="button"
+              accessibilityLabel="Export data"
+              accessibilityHint="Share a CSV of all your logged activities"
+            >
               <View style={styles.settingLeft}>
                 <MaterialCommunityIcons name="export" size={20} color={Colors.emerald[500]} />
                 <View>
@@ -273,6 +294,8 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={styles.settingRow}
               onPress={() => Alert.alert('Privacy', 'EcoPulse stores your data securely in Supabase with row-level security. Your data is never sold or shared with third parties.')}
+              accessibilityRole="button"
+              accessibilityLabel="Privacy policy"
             >
               <View style={styles.settingLeft}>
                 <MaterialCommunityIcons name="shield-account-outline" size={20} color={Colors.emerald[500]} />
@@ -283,7 +306,14 @@ export default function SettingsScreen() {
 
             <Divider />
 
-            <TouchableOpacity style={styles.settingRow} onPress={handleLogout} disabled={isLoggingOut}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleLogout}
+              disabled={isLoggingOut}
+              accessibilityRole="button"
+              accessibilityLabel={isLoggingOut ? 'Signing out' : 'Sign out'}
+              accessibilityState={{ disabled: isLoggingOut, busy: isLoggingOut }}
+            >
               <View style={styles.settingLeft}>
                 <MaterialCommunityIcons name="logout" size={20} color={Colors.error} />
                 <Text variant="body" color="error">

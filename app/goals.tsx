@@ -78,15 +78,24 @@ export default function GoalsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color={Colors.text.secondary} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <MaterialCommunityIcons name="arrow-left" size={22} color={Colors.text.secondary} accessible={false} />
         </TouchableOpacity>
         <Text variant="title">Goals</Text>
-        <TouchableOpacity onPress={() => setShowForm(v => !v)}>
+        <TouchableOpacity
+          onPress={() => setShowForm(v => !v)}
+          accessibilityRole="button"
+          accessibilityLabel={showForm ? 'Cancel new goal' : 'Add new goal'}
+        >
           <MaterialCommunityIcons
             name={showForm ? 'close' : 'plus'}
             size={22}
             color={Colors.emerald[500]}
+            accessible={false}
           />
         </TouchableOpacity>
       </View>
@@ -108,6 +117,7 @@ export default function GoalsScreen() {
               placeholder="e.g. Reduce transport by 20kg"
               placeholderTextColor={Colors.text.dim}
               maxLength={60}
+              accessibilityLabel="Goal title"
             />
 
             <Text variant="label" color="muted" style={styles.formLabel}>Category</Text>
@@ -117,11 +127,15 @@ export default function GoalsScreen() {
                   key={cat}
                   style={[styles.chip, category === cat && styles.chipActive]}
                   onPress={() => setCategory(cat)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: category === cat }}
+                  accessibilityLabel={cat === 'overall' ? 'Overall' : getCategoryLabel(cat)}
                 >
                   <Text
                     variant="caption"
                     weight="semibold"
                     style={category === cat ? styles.chipTextActive : styles.chipText}
+                    accessible={false}
                   >
                     {cat === 'overall' ? 'Overall' : getCategoryLabel(cat)}
                   </Text>
@@ -136,11 +150,15 @@ export default function GoalsScreen() {
                   key={opt.value}
                   style={[styles.periodBtn, period === opt.value && styles.periodBtnActive]}
                   onPress={() => setPeriod(opt.value)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: period === opt.value }}
+                  accessibilityLabel={opt.label}
                 >
                   <Text
                     variant="caption"
                     weight="semibold"
                     style={period === opt.value ? styles.chipTextActive : styles.chipText}
+                    accessible={false}
                   >
                     {opt.label}
                   </Text>
@@ -158,6 +176,7 @@ export default function GoalsScreen() {
               placeholder="e.g. 150"
               placeholderTextColor={Colors.text.dim}
               keyboardType="decimal-pad"
+              accessibilityLabel="Target carbon in kilograms"
             />
 
             <View style={styles.formActions}>

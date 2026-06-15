@@ -39,13 +39,19 @@ export function ProgressBar({
   }));
 
   return (
-    <View style={[styles.track, { backgroundColor, height, borderRadius: height / 2 }]}>
+    <View
+      style={[styles.track, { backgroundColor, height, borderRadius: height / 2 }]}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(clampedProgress * 100) }}
+    >
       <Animated.View
         style={[
           styles.fill,
           { backgroundColor: color, height, borderRadius: height / 2 },
           animatedStyle,
         ]}
+        accessible={false}
       />
     </View>
   );

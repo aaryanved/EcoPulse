@@ -71,6 +71,8 @@ export function Button({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       activeOpacity={0.9}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!isDisabled, busy: loading }}
       {...props}
     >
       {loading ? (
@@ -80,7 +82,7 @@ export function Button({
         />
       ) : (
         <View style={styles.content}>
-          {leftIcon && <View style={styles.iconLeft}>{leftIcon}</View>}
+          {leftIcon && <View style={styles.iconLeft} accessible={false}>{leftIcon}</View>}
           <Text
             style={[
               styles.label,
@@ -91,7 +93,7 @@ export function Button({
           >
             {children}
           </Text>
-          {rightIcon && <View style={styles.iconRight}>{rightIcon}</View>}
+          {rightIcon && <View style={styles.iconRight} accessible={false}>{rightIcon}</View>}
         </View>
       )}
     </AnimatedTouchable>

@@ -57,6 +57,7 @@ export function Input({
             size={20}
             color={isFocused ? Colors.emerald[500] : Colors.text.dim}
             style={styles.leftIcon}
+            accessible={false}
           />
         )}
         <TextInput
@@ -67,17 +68,21 @@ export function Input({
           secureTextEntry={isSecure}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          accessibilityLabel={label}
           {...props}
         />
         {(iconName || secureToggle) && (
           <TouchableOpacity
             onPress={secureToggle ? () => setIsSecure(s => !s) : onRightIconPress}
             style={styles.rightIcon}
+            accessibilityRole="button"
+            accessibilityLabel={secureToggle ? (isSecure ? 'Show password' : 'Hide password') : undefined}
           >
             <MaterialCommunityIcons
               name={iconName as any}
               size={20}
               color={Colors.text.dim}
+              accessible={false}
             />
           </TouchableOpacity>
         )}

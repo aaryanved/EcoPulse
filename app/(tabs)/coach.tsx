@@ -303,11 +303,15 @@ export default function CoachScreen() {
           onPress={() => setShowQuickPrompts(v => !v)}
           style={styles.promptToggle}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={showQuickPrompts ? 'Hide quick prompts' : 'Show quick prompts'}
+          accessibilityState={{ expanded: showQuickPrompts }}
         >
           <MaterialCommunityIcons
             name={showQuickPrompts ? 'chevron-up' : 'lightning-bolt'}
             size={20}
             color={Colors.emerald[500]}
+            accessible={false}
           />
         </TouchableOpacity>
       </View>
@@ -356,8 +360,11 @@ export default function CoachScreen() {
                   style={styles.quickPrompt}
                   onPress={() => sendMessage(p.text)}
                   disabled={isFetching}
+                  accessibilityRole="button"
+                  accessibilityLabel={p.label}
+                  accessibilityState={{ disabled: isFetching }}
                 >
-                  <Text variant="caption" color="secondary" style={styles.quickPromptText}>
+                  <Text variant="caption" color="secondary" style={styles.quickPromptText} accessible={false}>
                     {p.label}
                   </Text>
                 </TouchableOpacity>
@@ -380,6 +387,7 @@ export default function CoachScreen() {
             blurOnSubmit
             onSubmitEditing={() => sendMessage(input)}
             editable={!isFetching}
+            accessibilityLabel="Message to AI coach"
           />
           <TouchableOpacity
             style={[
@@ -388,14 +396,18 @@ export default function CoachScreen() {
             ]}
             onPress={() => sendMessage(input)}
             disabled={!input.trim() || isFetching || !!streamingId}
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
+            accessibilityState={{ disabled: !input.trim() || isFetching || !!streamingId, busy: isFetching }}
           >
             {isFetching ? (
-              <ActivityIndicator size="small" color={Colors.emerald[400]} />
+              <ActivityIndicator size="small" color={Colors.emerald[400]} accessible={false} />
             ) : (
               <MaterialCommunityIcons
                 name="send"
                 size={20}
                 color={input.trim() ? Colors.background.primary : Colors.text.dim}
+                accessible={false}
               />
             )}
           </TouchableOpacity>

@@ -87,8 +87,12 @@ export default function DashboardScreen() {
           </View>
         )}
         {!isDesktop && (
-          <TouchableOpacity onPress={() => router.push('/settings')}>
-            <MaterialCommunityIcons name="cog-outline" size={24} color={Colors.text.muted} />
+          <TouchableOpacity
+            onPress={() => router.push('/settings')}
+            accessibilityRole="button"
+            accessibilityLabel="Open settings"
+          >
+            <MaterialCommunityIcons name="cog-outline" size={24} color={Colors.text.muted} accessible={false} />
           </TouchableOpacity>
         )}
       </View>
@@ -179,7 +183,11 @@ export default function DashboardScreen() {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text variant="title">Goals</Text>
-        <TouchableOpacity onPress={() => router.push('/goals')}>
+        <TouchableOpacity
+          onPress={() => router.push('/goals')}
+          accessibilityRole="button"
+          accessibilityLabel="Manage goals"
+        >
           <Text variant="caption" color="secondary">Manage</Text>
         </TouchableOpacity>
       </View>
@@ -194,7 +202,11 @@ export default function DashboardScreen() {
       <View style={styles.sectionHeader}>
         <Text variant="title">Recent</Text>
         {activities.length > 5 && (
-          <TouchableOpacity onPress={() => router.push('/(tabs)/log')}>
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/log')}
+            accessibilityRole="button"
+            accessibilityLabel="View all activities"
+          >
             <Text variant="caption" color="secondary">View all</Text>
           </TouchableOpacity>
         )}
@@ -272,11 +284,16 @@ export default function DashboardScreen() {
 
 function QuickActionButton({ icon, label, color, onPress }: { icon: string; label: string; color: string; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.quickAction} onPress={onPress}>
-      <View style={[styles.quickActionIcon, { backgroundColor: `${color}20` }]}>
-        <MaterialCommunityIcons name={icon as any} size={22} color={color} />
+    <TouchableOpacity
+      style={styles.quickAction}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <View style={[styles.quickActionIcon, { backgroundColor: `${color}20` }]} accessible={false}>
+        <MaterialCommunityIcons name={icon as any} size={22} color={color} accessible={false} />
       </View>
-      <Text variant="caption" color="secondary">{label}</Text>
+      <Text variant="caption" color="secondary" accessible={false}>{label}</Text>
     </TouchableOpacity>
   );
 }

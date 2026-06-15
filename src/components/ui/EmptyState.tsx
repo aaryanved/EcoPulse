@@ -16,8 +16,8 @@ interface Props {
 export function EmptyState({ icon = 'leaf', title, description, actionLabel, onAction }: Props) {
   return (
     <View style={styles.container}>
-      <View style={styles.iconWrapper}>
-        <MaterialCommunityIcons name={icon as any} size={48} color={Colors.emerald[700]} />
+      <View style={styles.iconWrapper} accessible={false}>
+        <MaterialCommunityIcons name={icon as any} size={48} color={Colors.emerald[700]} accessible={false} />
       </View>
       <Text variant="title" style={styles.title} color="secondary">
         {title}
