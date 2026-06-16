@@ -106,7 +106,7 @@ export const useCarbonStore = create<CarbonState>((set, get) => ({
 
     // Fire-and-forget side effects: streak, leaderboard, badges
     const period = toISODate(new Date()).slice(0, 7); // YYYY-MM
-    Promise.all([
+    void Promise.all([
       updateStreak(userId).catch(() => {}),
       upsertLeaderboardEntry(userId, period, newBreakdown.total, 0).catch(() => {}),
       checkAndAwardBadges(userId).catch(() => {}),

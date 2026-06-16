@@ -96,6 +96,37 @@ export function getCategoryIcon(category: ActivityCategory): string {
   return icons[category] ?? 'dots-horizontal';
 }
 
+export interface GridIntensityLevel {
+  label: string;
+  color: string;
+  icon: string;
+  advice: string;
+}
+
+const GRID_INTENSITY_COLORS = {
+  veryClean: '#10b981',
+  clean: '#22c55e',
+  moderate: '#f59e0b',
+  high: '#f97316',
+  veryHigh: '#ef4444',
+} as const;
+
+export function getGridIntensityLevel(gCo2PerKwh: number): GridIntensityLevel {
+  if (gCo2PerKwh < 100) {
+    return { label: 'Very Clean', color: GRID_INTENSITY_COLORS.veryClean, icon: 'leaf', advice: 'Perfect time to charge devices & EVs.' };
+  }
+  if (gCo2PerKwh < 200) {
+    return { label: 'Clean', color: GRID_INTENSITY_COLORS.clean, icon: 'check-circle-outline', advice: 'Good conditions for high-energy tasks.' };
+  }
+  if (gCo2PerKwh < 400) {
+    return { label: 'Moderate', color: GRID_INTENSITY_COLORS.moderate, icon: 'alert-circle-outline', advice: 'Consider deferring heavy electricity use.' };
+  }
+  if (gCo2PerKwh < 600) {
+    return { label: 'High', color: GRID_INTENSITY_COLORS.high, icon: 'alert-outline', advice: 'Reduce discretionary electricity use now.' };
+  }
+  return { label: 'Very High', color: GRID_INTENSITY_COLORS.veryHigh, icon: 'close-circle-outline', advice: 'Avoid non-essential electricity use.' };
+}
+
 export function getCategoryLabel(category: ActivityCategory): string {
   const labels: Record<ActivityCategory, string> = {
     transport: 'Transport',

@@ -10,8 +10,11 @@ import type {
   GoalInsert,
   AIRecommendationRow,
   LeaderboardEntryRow,
+  RecommendationType,
+  ActivityCategory,
 } from '@/types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
 
 // ─── User ───────────────────────────────────────────────────────────────────
@@ -153,7 +156,7 @@ export async function checkAndAwardBadges(userId: string): Promise<void> {
     getActivitiesForPeriod(userId, '2020-01-01', new Date().toISOString().split('T')[0]),
   ]);
 
-  const earned = new Set(userBadges.map((ub: any) => ub.badge_id));
+  const earned = new Set(userBadges.map((ub: UserBadgeRow) => ub.badge_id));
 
   for (const badge of badges) {
     if (earned.has(badge.id)) continue;
@@ -168,7 +171,7 @@ export async function checkAndAwardBadges(userId: string): Promise<void> {
         break;
       case 'transit_streak':
         qualifies =
-          activities.filter((a: any) =>
+          activities.filter((a: ActivityRow) =>
             a.category === 'transport' && a.subcategory?.toLowerCase().includes('transit')
           ).length >= badge.requirement_value;
         break;
@@ -232,11 +235,11 @@ export async function getUnreadRecommendations(userId: string): Promise<AIRecomm
 
 export async function saveRecommendation(
   userId: string,
-  type: string,
+  type: RecommendationType,
   title: string,
   content: string,
   potentialSavingsKg = 0,
-  category?: string
+  category?: ActivityCategory
 ): Promise<AIRecommendationRow> {
   const { data, error } = await db
     .from('ai_recommendations')

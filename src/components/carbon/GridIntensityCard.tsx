@@ -4,55 +4,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from '@/components/ui/Text';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useGridIntensity } from '@/hooks/useGridIntensity';
+import { getGridIntensityLevel } from '@/utils/carbon';
 import { Colors, Spacing, BorderRadius, FontSize } from '@/constants/theme';
-
-interface IntensityLevel {
-  label: string;
-  color: string;
-  icon: string;
-  advice: string;
-}
-
-function getIntensityLevel(gCo2PerKwh: number): IntensityLevel {
-  if (gCo2PerKwh < 100) {
-    return {
-      label: 'Very Clean',
-      color: Colors.emerald[500],
-      icon: 'leaf',
-      advice: 'Perfect time to charge devices & EVs.',
-    };
-  }
-  if (gCo2PerKwh < 200) {
-    return {
-      label: 'Clean',
-      color: Colors.carbon.low,
-      icon: 'check-circle-outline',
-      advice: 'Good conditions for high-energy tasks.',
-    };
-  }
-  if (gCo2PerKwh < 400) {
-    return {
-      label: 'Moderate',
-      color: Colors.carbon.medium,
-      icon: 'alert-circle-outline',
-      advice: 'Consider deferring heavy electricity use.',
-    };
-  }
-  if (gCo2PerKwh < 600) {
-    return {
-      label: 'High',
-      color: Colors.carbon.high,
-      icon: 'alert-outline',
-      advice: 'Reduce discretionary electricity use now.',
-    };
-  }
-  return {
-    label: 'Very High',
-    color: Colors.carbon.critical,
-    icon: 'close-circle-outline',
-    advice: 'Avoid non-essential electricity use.',
-  };
-}
 
 function prettifyZone(zone: string): string {
   return zone.replace(/-/g, ' · ');
@@ -68,7 +21,7 @@ export function GridIntensityCard({ zone = 'US-CA' }: GridIntensityCardProps) {
   // Silent fail — don't clutter the UI if the key is missing or API is down
   if (error) return null;
 
-  const level = getIntensityLevel(intensityGCo2PerKwh);
+  const level = getGridIntensityLevel(intensityGCo2PerKwh);
   const renewableFraction = Math.min(renewablePercent / 100, 1);
 
   return (

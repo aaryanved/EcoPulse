@@ -18,7 +18,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useChallenges } from '@/hooks/useChallenges';
 import { useAuth } from '@/hooks/useAuth';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import type { ChallengeRow, UserChallengeRow } from '@/types';
+import type { BadgeRow, ChallengeRow, UserChallengeRow } from '@/types';
 import { Colors, Spacing, BorderRadius, FontSize } from '@/constants/theme';
 
 type TabId = 'active' | 'available' | 'badges';
@@ -170,7 +170,7 @@ export default function ChallengesScreen() {
 
         {activeTab === 'badges' && (
           <View style={styles.badgeGrid}>
-            {allBadges.map((badge: any) => {
+            {allBadges.map((badge) => {
               const earned = earnedBadgeIds.has(badge.id);
               return (
                 <BadgeCard key={badge.id} badge={badge} earned={earned} />
@@ -183,7 +183,9 @@ export default function ChallengesScreen() {
   );
 }
 
-function ActiveChallengeCard({ userChallenge }: { userChallenge: any }) {
+type UserChallengeWithChallenge = UserChallengeRow & { challenge?: ChallengeRow };
+
+function ActiveChallengeCard({ userChallenge }: { userChallenge: UserChallengeWithChallenge }) {
   const challenge: ChallengeRow | undefined = userChallenge.challenge;
   if (!challenge) return null;
 
@@ -244,7 +246,7 @@ function ActiveChallengeCard({ userChallenge }: { userChallenge: any }) {
   );
 }
 
-function CompletedChallengeCard({ userChallenge }: { userChallenge: any }) {
+function CompletedChallengeCard({ userChallenge }: { userChallenge: UserChallengeWithChallenge }) {
   const challenge: ChallengeRow | undefined = userChallenge.challenge;
   if (!challenge) return null;
   return (
@@ -315,7 +317,7 @@ function AvailableChallengeCard({
   );
 }
 
-function BadgeCard({ badge, earned }: { badge: any; earned: boolean }) {
+function BadgeCard({ badge, earned }: { badge: BadgeRow; earned: boolean }) {
   const RARITY_COLORS: Record<string, string> = {
     common: Colors.text.dim,
     rare: Colors.info,
